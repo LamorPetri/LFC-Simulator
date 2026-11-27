@@ -6,6 +6,8 @@ import { useSim } from '../sim/store';
 import { FARMS, ROUTE, FARM_RADIUS_M } from '../sim/data';
 import { TERRAIN } from './terrain';
 import { createOceanMaterial } from './oceanMaterial';
+// GLB Viten assettiputkena: hashattu URL, suhteessa JS-moduuliin (ei riipu document.baseURI:sta eikä CDN:n vanhentuneesta välimuistista)
+import workboatGlbUrl from '../assets/workboat20.glb?url';
 
 const R0 = { lat: 63.675, lon: 9.4 };
 const M_PER_LAT = 111320;
@@ -155,6 +157,7 @@ export default function Scene3D() {
   useEffect(() => {
     const mount = mountRef.current;
     if (!mount) return;
+    let disposed = false;
 
     const renderer = new THREE.WebGLRenderer({ antialias: true });
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.75));
@@ -339,9 +342,17 @@ export default function Scene3D() {
     const procedural = buildWellBoat();
     procedural.rotation.y = -Math.PI / 2;
     ship.add(procedural);
-    // GLB: lataa ja korvaa onnistuessa (metrejä, vesiraja-origo, forward +x)
-    const glbUrl = new URL('models/workboat20.glb', document.baseURI).href;
-    void new GLTFLoader().loadAsync(glbUrl).then((gltf) => {
+    // GLB: lataa ja korvaa onnistuessa (metrejä, vesiraja-origo, forward +x).
+    // Uudelleenyritys: CDN voi palauttaa hetkellisesti virheen julkaisun jälkeen (muuten proseduraalinen jäisi koko istunnoksi).
+    const loadGlb = (attempt: number): Promise<Awaited<ReturnType<GLTFLoader['loadAsync']>>> =>
+      new GLTFLoader().loadAsync(workboatGlbUrl).catch((e) => {
+        if (disposed || attempt >= 7) throw e;
+        return new Promise<Awaited<ReturnType<GLTFLoader['loadAsync']>>>((resolve, reject) => {
+          window.setTimeout(() => loadGlb(attempt + 1).then(resolve, reject), Math.min(15000, 1000 * 2 ** attempt));
+        });
+      });
+    void loadGlb(0).then((gltf) => {
+      if (disposed) return;
       const wrapper = new THREE.Group();
       gltf.scene.rotation.y = -Math.PI / 2; // forward +x -> +z
       gltf.scene.traverse((o) => {
@@ -474,6 +485,7 @@ export default function Scene3D() {
     };
 
     return () => {
+      disposed = true;
       cancelAnimationFrame(raf);
       ro.disconnect();
       controls.dispose();
