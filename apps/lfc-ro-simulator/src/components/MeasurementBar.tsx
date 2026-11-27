@@ -9,7 +9,7 @@ import { Level, tagLevel } from './tagLevel';
 import { tagLabel } from '../sim/tagLimits';
 
 // HMI-värit: kaistat aina värillisiä (ok = vihreä), arvoteksti neutraali kun ok
-const bandColor = (l: Level) => (l === 'ok' ? 'var(--perm)' : `var(--${l})`);
+const bandColor = (l: Level) => ({ ok: '#35e0c4', warn: '#ffb020', alarm: '#ff5263' })[l];
 
 interface Band { from: number; to: number; level: Level }
 
@@ -57,16 +57,16 @@ export default function MeasurementBar({ tag, value, decimals = 0 }: Props) {
 
   return (
     <Box>
-      <Text fontSize="xs" fontWeight="semibold" color="var(--txt)" noOfLines={1} title={label}>{label}</Text>
+      <Text fontSize="xs" fontWeight="semibold" color="#e6ecfa" noOfLines={1} title={label}>{label}</Text>
       <Flex justify="space-between" align="baseline" mb={0.5}>
         <Text fontSize="10px" className="lfc-muted">{tag.tag}</Text>
-        <Text fontSize="sm" fontWeight="700" color={level === 'ok' ? 'var(--txt)' : bandColor(level)} style={{ fontVariantNumeric: 'tabular-nums' }}>
+        <Text fontSize="sm" fontWeight="700" color={level === 'ok' ? '#e6ecfa' : bandColor(level)} style={{ fontVariantNumeric: 'tabular-nums' }}>
           {value.toFixed(decimals)}
           <Text as="span" fontSize="10px" fontWeight="400" className="lfc-muted" ml={1}>{tag.unit ?? ''}</Text>
         </Text>
       </Flex>
       <Slider min={lo} max={hi} value={clamp(value)} isReadOnly focusThumbOnChange={false}>
-        <SliderTrack height="8px" borderRadius="sm" bg="var(--eq2)">
+        <SliderTrack height="8px" borderRadius="sm" bg="#141f3b">
           {bands.map((b, i) => (
             <Box
               key={i}
@@ -79,7 +79,7 @@ export default function MeasurementBar({ tag, value, decimals = 0 }: Props) {
             />
           ))}
         </SliderTrack>
-        <SliderThumb width="4px" height="14px" borderRadius="1px" bg="var(--txt)" border="1px solid var(--bg)" boxShadow="0 0 4px rgba(0,0,0,0.7)" />
+        <SliderThumb width="4px" height="14px" borderRadius="1px" bg="#e6ecfa" border="1px solid #090e1b" boxShadow="0 0 4px rgba(0,0,0,0.7)" />
       </Slider>
       <Box position="relative" height="12px" mt={0.5}>
         {ticks.map((v, i) => (

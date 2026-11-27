@@ -95,15 +95,15 @@ export default function SceneView({ areas, tags, instructionByType, onAfterStop 
 
       {/* mittauspalkit: vihreä = normal, keltainen = varoitus, punainen = hälytys (rajat PLC Tag Map -datasetistä) */}
       <Box
-        position="absolute" top={3} right={3} zIndex={600}
+        position="absolute" top="140px" right={3} zIndex={600}
         className="lfc-panel" p={3} width="268px"
       >
         <Text fontWeight="bold" mb={2} fontSize="sm">S7 measurements</Text>
         <Box mb={2}>
           <HStack spacing={2} fontSize="10px" className="lfc-muted">
-            <Box w="10px" h="6px" borderRadius="1px" bg="#38A169" /><Text>normal</Text>
-            <Box w="10px" h="6px" borderRadius="1px" bg="#ECC94B" /><Text>warning</Text>
-            <Box w="10px" h="6px" borderRadius="1px" bg="#E53E3E" /><Text>alarm</Text>
+            <Box w="10px" h="6px" borderRadius="1px" bg="#35e0c4" /><Text>normal</Text>
+            <Box w="10px" h="6px" borderRadius="1px" bg="#ffb020" /><Text>warning</Text>
+            <Box w="10px" h="6px" borderRadius="1px" bg="#ff5263" /><Text>alarm</Text>
           </HStack>
         </Box>
         {['FT-101', 'PT-102', 'PDT-103', 'CT-301', 'AT-501'].map((tagId) => {
