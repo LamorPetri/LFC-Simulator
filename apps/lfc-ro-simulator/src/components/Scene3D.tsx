@@ -279,18 +279,36 @@ export default function Scene3D() {
     let prevPos: [number, number] | null = null;
     let heading = 0;
     let sprayTimer = 0;
-    // pehmeä renderisijainti: storessa 1 Hz, täällä 60 fps interpolointi
-    let rLat = useSim.getState().vessel.lat;
-    let rLon = useSim.getState().vessel.lon;
+    // pehmeä renderisijainti: storessa 1 Hz askelia (~5,7 m), täällä edellisen ja nykyisen store-pisteen
+    // välillä TASAISELLA nopeudella (snapshot-interpolointi, ~1 s viive) -> ei kiihtyvyyshyppyjä askelten välillä.
+    // Aiheempi eksponentiaalinen lähestyminen sai aluksen ryntäämään jokaisen askelen jälkeen ja hidastumaan.
+    let seenLat = useSim.getState().vessel.lat;
+    let seenLon = useSim.getState().vessel.lon;
+    let prevLat = seenLat, prevLon = seenLon;
+    let currLat = seenLat, currLon = seenLon;
+    let lastSwitch = performance.now();
+    let segDur = 1000;
     const camPos = camera.position.clone();
     const tmpV = new THREE.Vector3();
     const tick = (now: number) => {
       const dt = Math.min(0.1, (now - lastT) / 1000);
       lastT = now;
       const s = useSim.getState();
-      const k = 1 - Math.exp(-dt * 2.6);
-      rLat += (s.vessel.lat - rLat) * k;
-      rLon += (s.vessel.lon - rLon) * k;
+      if (s.vessel.lat !== seenLat || s.vessel.lon !== seenLon) {
+        // uusi store-askel: nykyinen interpoloitu sijainti edelliseksi pisteeksi (liike jatkuu katkeamatta)
+        const u0 = Math.min(1, Math.max(0, (now - lastSwitch) / segDur));
+        prevLat = prevLat + (currLat - prevLat) * u0;
+        prevLon = prevLon + (currLon - prevLon) * u0;
+        segDur = Math.min(2000, Math.max(400, now - lastSwitch)); // mitattu askelväli (~1000 ms)
+        lastSwitch = now;
+        currLat = s.vessel.lat;
+        currLon = s.vessel.lon;
+        seenLat = currLat;
+        seenLon = currLon;
+      }
+      const u = Math.min(1, Math.max(0, (now - lastSwitch) / segDur));
+      const rLat = prevLat + (currLat - prevLat) * u;
+      const rLon = prevLon + (currLon - prevLon) * u;
       const [x, z] = toXZ(rLat, rLon);
       let speed = 0; // m/s
       if (prevPos) {

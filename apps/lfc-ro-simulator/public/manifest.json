@@ -1,8 +1,8 @@
 {
   "name": "LFC RO Simulator",
   "description": "Simulation model base for Live Fish Carrier water production: identifies areas suitable for RO water production, alerts when producing near fish farms or on shallows, and gives predictive maintenance instructions (CIP, extended freshwater flush).",
-  "version": "0.24.0",
-  "versionDescription": "3D: peräkannelle RO-laitos — kaksi Lamor-brändattyä sinista 20 ft RO-konttia (LAMOR-logo + vesiroiske) molemmin puolin laivaa, 10 ft CIP-kontti konttien valissa ja vaakamallinen HEX-rumpusuodatin (CM Aqua -tyyli). Syottoputket kansien alta konttien kylkeen, rejekti- ja tuotetun veden putket ulos kyljesta kansien alle. Kalatankkien luukut ja nosturit siirretty 1-3 m eteenpain.",
+  "version": "0.24.1",
+  "versionDescription": "3D: laivan liike sujuvoitettu — renderisoijainti kulkee tasaisella nopeudella storen askelpisteiden valilla (snapshot-interpolointi) eksponentiaalisen lahestymisen sijaan; ei enaa ryntaysta/hidastumista jokaisen simulaatioaskelen kohdalla.",
   "appId": "6b001bae6645d8f4a490ad03",
   "config": {
     "fields": {}
