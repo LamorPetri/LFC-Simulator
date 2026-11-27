@@ -111,6 +111,7 @@ export default function App() {
           <HStack spacing={2} fontSize="xs" className="lfc-muted">
             <Text>{dataReady ? `${areas.length} areas · ${zones.length} zones` : 'loading…'}</Text>
             {sim.banners.length > 0 && <Badge colorScheme="red">{sim.banners.length} alert(s)</Badge>}
+            <Text title={`Published app version ${__APP_VERSION__}`}>v{__APP_VERSION__}</Text>
           </HStack>
         </Box>
       </Flex>
