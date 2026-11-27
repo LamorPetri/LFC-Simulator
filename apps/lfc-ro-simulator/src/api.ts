@@ -109,7 +109,7 @@ export async function loadInstructions(): Promise<InstructionRec[]> {
   }));
 }
 
-export interface TagRec { id: string; name: string; tag: string; s7Address: string | null; unit: string | null; normalMin: number | null; normalMax: number | null; alarmBelow: number | null; alarmAbove: number | null; }
+export interface TagRec { id: string; name: string; tag: string; description: string | null; s7Address: string | null; unit: string | null; normalMin: number | null; normalMax: number | null; alarmBelow: number | null; alarmAbove: number | null; scaleMin: number | null; scaleMax: number | null; }
 
 export async function loadTags(): Promise<TagRec[]> {
   const F = PlctagmapFields;
@@ -118,12 +118,15 @@ export async function loadTags(): Promise<TagRec[]> {
     id: a._id,
     name: a.name,
     tag: str(a.fields?.[F.tag]) ?? '',
+    description: str(a.fields?.[F.description]),
     s7Address: str(a.fields?.[F.s7_address]),
     unit: str(a.fields?.[F.unit]),
     normalMin: num(a.fields?.[F.normal_min]),
     normalMax: num(a.fields?.[F.normal_max]),
     alarmBelow: num(a.fields?.[F.alarm_below]),
     alarmAbove: num(a.fields?.[F.alarm_above]),
+    scaleMin: num(a.fields?.[F.scale_min]),
+    scaleMax: num(a.fields?.[F.scale_max]),
   }));
 }
 

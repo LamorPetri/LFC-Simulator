@@ -32,7 +32,9 @@ export const workflowConfig: HailerWorkflowUpdatePayload = {
     PLC_Tag_Map_FieldIds.normal_min_6e5,
     PLC_Tag_Map_FieldIds.normal_max_6e8,
     PLC_Tag_Map_FieldIds.alarm_below_6ec,
-    PLC_Tag_Map_FieldIds.alarm_above_6ef
+    PLC_Tag_Map_FieldIds.alarm_above_6ef,
+    PLC_Tag_Map_FieldIds.scale_min_409,
+    PLC_Tag_Map_FieldIds.scale_max_40c
   ],
   inviteActivityCreator: true,
   key: "plcTagMap",
@@ -94,6 +96,14 @@ export const workflowConfig: HailerWorkflowUpdatePayload = {
         [PLC_Tag_Map_FieldIds.alarm_above_6ef]: {
           description: "Red above this value",
           label: "Alarm above"
+        },
+        [PLC_Tag_Map_FieldIds.scale_min_409]: {
+          description: "Lower end of the measurement bar in the simulator",
+          label: "Scale min"
+        },
+        [PLC_Tag_Map_FieldIds.scale_max_40c]: {
+          description: "Upper end of the measurement bar in the simulator (red band reaches this)",
+          label: "Scale max"
         }
       },
       name: "📟 PLC Tag Map",

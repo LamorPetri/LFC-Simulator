@@ -1,9 +1,10 @@
 import { useEffect, useRef } from 'react';
 import {
-  Alert, AlertIcon, Badge, Box, Button, Flex, HStack, Progress, Slider, SliderFilledTrack,
+  Alert, AlertIcon, Badge, Box, Button, HStack, Progress, Slider, SliderFilledTrack,
   SliderThumb, SliderTrack, Text
 } from '@chakra-ui/react';
 import Scene3D from './Scene3D';
+import MeasurementBar from './MeasurementBar';
 import { useSim } from '../sim/store';
 import { AreaRec, TagRec } from '../api';
 import { useProduction } from '../useProduction';
@@ -13,17 +14,6 @@ interface Props {
   tags: TagRec[];
   instructionByType: Record<string, string>;
   onAfterStop: () => void;
-}
-
-type Level = 'ok' | 'warn' | 'alarm';
-const levelColor = (l: Level) => (l === 'ok' ? '#38A169' : l === 'warn' ? '#DD6B20' : '#E53E3E');
-
-function tagLevel(value: number, normalMin: number | null, normalMax: number | null, alarmBelow: number | null, alarmAbove: number | null): Level {
-  if (alarmAbove !== null && value > alarmAbove) return 'alarm';
-  if (alarmBelow !== null && value < alarmBelow) return 'alarm';
-  if (normalMin !== null && value < normalMin) return 'warn';
-  if (normalMax !== null && value > normalMax) return 'warn';
-  return 'ok';
 }
 
 export default function SceneView({ areas, tags, instructionByType, onAfterStop }: Props) {
@@ -103,27 +93,29 @@ export default function SceneView({ areas, tags, instructionByType, onAfterStop 
         <Text fontSize="xs" color="subtleText" mt={1}>Volume {sim.volume.toFixed(0)} m³</Text>
       </Box>
 
-      {/* mittarinauha */}
+      {/* mittauspalkit: vihreä = normal, keltainen = varoitus, punainen = hälytys (rajat PLC Tag Map -datasetistä) */}
       <Box
         position="absolute" top={3} right={3} zIndex={600}
-        className="lfc-panel" p={3} width="240px"
+        className="lfc-panel" p={3} width="268px"
       >
-        <Text fontWeight="bold" mb={1} fontSize="sm">S7 measurements</Text>
+        <Text fontWeight="bold" mb={2} fontSize="sm">S7 measurements</Text>
+        <Box mb={2}>
+          <HStack spacing={2} fontSize="10px" className="lfc-muted">
+            <Box w="10px" h="6px" borderRadius="1px" bg="#38A169" /><Text>normal</Text>
+            <Box w="10px" h="6px" borderRadius="1px" bg="#ECC94B" /><Text>warning</Text>
+            <Box w="10px" h="6px" borderRadius="1px" bg="#E53E3E" /><Text>alarm</Text>
+          </HStack>
+        </Box>
         {['FT-101', 'PT-102', 'PDT-103', 'CT-301', 'AT-501'].map((tagId) => {
           const t = tagByTag[tagId];
-          const value = valueOf(tagId);
-          const level = t ? tagLevel(value, t.normalMin, t.normalMax, t.alarmBelow, t.alarmAbove) : 'ok' as Level;
+          if (!t) return null;
           return (
-            <Flex key={tagId} justify="space-between" align="center" py={0.5}>
-              <HStack>
-                <Box w="8px" h="8px" borderRadius="full" bg={levelColor(level)} />
-                <Text fontSize="xs" fontWeight="bold">{tagId}</Text>
-              </HStack>
-              <Text fontSize="xs" className="lfc-value">{value.toFixed(tagId === 'PDT-103' ? 2 : 0)} {t?.unit ?? ''}</Text>
-            </Flex>
+            <Box key={tagId} mb={2.5} _last={{ mb: 0 }}>
+              <MeasurementBar tag={t} value={valueOf(tagId)} decimals={tagId === 'PDT-103' ? 2 : tagId === 'AT-501' ? 2 : 0} />
+            </Box>
           );
         })}
-        <Text fontSize="10px" color="subtleText" mt={1}>{nearestArea ? nearestArea.name : 'Open water'}</Text>
+        <Text fontSize="10px" color="subtleText" mt={2}>{nearestArea ? nearestArea.name : 'Open water'}</Text>
       </Box>
 
       {/* tilapalkki */}

@@ -68,6 +68,8 @@ export const PlctagmapFields = {
   normal_max: '6b001755156ea9e4043476e8',
   alarm_below: '6b001755156ea9e4043476ec',
   alarm_above: '6b001755156ea9e4043476ef',
+  scale_min: '6b0936efebd3962e6d7e9409',
+  scale_max: '6b0936efebd3962e6d7e940c',
 } as const;
 
 export const PlctagmapPhases = {

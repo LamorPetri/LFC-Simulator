@@ -4,6 +4,7 @@ import {
   SliderFilledTrack, SliderThumb, SliderTrack, Stat, StatLabel, StatNumber, Text, Tooltip,
 } from '@chakra-ui/react';
 import { useSim, startProduction, stopProduction } from '../sim/store';
+import { tagLabel } from '../sim/tagLimits';
 import { TagRec, AreaRec, createSession, finishSession, createAlert, createAction } from '../api';
 
 interface Props {
@@ -641,8 +642,8 @@ export default function ProcessView({ tags, areas, instructionByType, onAfterSto
               return (
                 <Flex key={tagId} align="center" justify="space-between" py={1.5} borderBottomWidth="1px" borderColor="rgba(110,126,168,0.25)" _last={{ borderBottomWidth: 0 }}>
                   <Box>
-                    <Text fontWeight="bold" fontSize="sm" color="#e8ecf4">{tagId}</Text>
-                    <Text fontSize="xs" className="lfc-muted">{t?.s7Address ?? ''}</Text>
+                    <Text fontWeight="bold" fontSize="sm" color="#e8ecf4">{t ? tagLabel(t) : tagId}</Text>
+                    <Text fontSize="xs" className="lfc-muted">{tagId}{t?.s7Address ? ` · ${t.s7Address}` : ''}</Text>
                   </Box>
                   <Box textAlign="right">
                     <HStack>

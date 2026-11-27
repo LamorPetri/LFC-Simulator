@@ -78,6 +78,8 @@ export enum PLC_Tag_Map_FieldIds {
   normal_max_6e8 = "6b001755156ea9e4043476e8",
   alarm_below_6ec = "6b001755156ea9e4043476ec",
   alarm_above_6ef = "6b001755156ea9e4043476ef",
+  scale_min_409 = "6b0936efebd3962e6d7e9409",
+  scale_max_40c = "6b0936efebd3962e6d7e940c",
 }
 
 // Phase IDs enum for workflow: 📟 PLC Tag Map
@@ -179,6 +181,8 @@ export enum WorkflowIds {
 
 export enum WorkspaceMembers {
   petri_vnsk_3b1 = "5d8dc07f1bedbb154b3473b1",
+  nico_larsen_74e = "5579d000a9bbb6895dbcc74e",
+  robert_broman_506 = "68a2bea86cc0abe93f8a3506",
 }
 
 // Workspace Teams enum - maps team IDs to their names
@@ -203,6 +207,8 @@ export enum HailerMembers {
 
   // Users
   petri_vnsk_3b1 = "user_5d8dc07f1bedbb154b3473b1",
+  nico_larsen_74e = "user_5579d000a9bbb6895dbcc74e",
+  robert_broman_506 = "user_68a2bea86cc0abe93f8a3506",
 
   // Teams
   default_team_757 = "team_6afd55f96c73bd7568e76757",

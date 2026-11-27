@@ -166,7 +166,9 @@ export const useSim = create<SimState>((set, get) => ({
       PT102: s.producing ? 45.5 + fouling * 0.09 + noise(0.4) : 0,
       PDT103: 0.65 + (fouling / 100) * 1.25 + noise(0.03),
       FT201: s.producing ? cap * 0.88 - (fouling / 100) * 14 + noise(2) : 0,
-      CT301: 24 + (fouling / 100) * 38 + noise(2),
+      // tuotetun veden sähkönjohtavuus (µS/cm): SWRO-permeaatti ~230 µS/cm puhtaana, nousee likaantumisen
+      // myötä (suolan läpäisy) -> 500 (keltainen) ~80 % likaantumisessa, 700 (punainen) ~100 %
+      CT301: 230 + (fouling / 100) * 480 + (ev.status === 'farm' ? 25 : ev.status === 'shallow' ? 15 : 0) + noise(6),
       LT401: tankLevel,
       TT104: 9 + Math.sin(Date.now() / 900000) * 1.2 + noise(0.3),
       AT501: Math.round(ph * 100) / 100,

@@ -1,8 +1,8 @@
 {
   "name": "LFC RO Simulator",
   "description": "Simulation model base for Live Fish Carrier water production: identifies areas suitable for RO water production, alerts when producing near fish farms or on shallows, and gives predictive maintenance instructions (CIP, extended freshwater flush).",
-  "version": "0.20.0",
-  "versionDescription": "Aluksen reitti ei koskaan aja kasvatushäkkien päälle: häkkien ympärillä 183 m kieltoalue (rakenteet 135 m + runko 45 m + 3 m vara). Autoreitti kiertää häkit kosketusviivaa ja kehää pitkin; manuaalinen sijoitus Häkin sisällä hyppää kieltoalueen ulkopuolelle; aloitussijainti häkin ulkopuolella; kartalla punainen katkoviiva = kieltoalue.",
+  "version": "0.21.0",
+  "versionDescription": "3D-nakyma: mitatut suureet nimetty uudelleen (esim. CT-301 = Produced water conductivity) ja naytetaan slider-mittareina, joissa vihrea = normal, keltainen = varoitus, punainen = hairio (rajat ja asteikko PLC Tag Map -datasetissa). CT-301: 0-500 vihrea, 500-700 keltainen, 700-1000 punainen uS/cm; simuloitu johtavuus skaalattu realistiselle SWRO-permeaatin alueelle.",
   "appId": "6b001bae6645d8f4a490ad03",
   "config": {
     "fields": {}

@@ -93,5 +93,27 @@ export const fields: HailerFieldGeneric[] = [
     label: "Alarm above",
     required: false,
     type: "numeric"
+  },
+  {
+    _id: PLC_Tag_Map_FieldIds.scale_min_409,
+    data: [],
+    description: "Lower end of the measurement bar in the simulator",
+    functionEnabled: false,
+    inviteToDiscussionOnChange: false,
+    key: "scale_min",
+    label: "Scale min",
+    required: false,
+    type: "numeric"
+  },
+  {
+    _id: PLC_Tag_Map_FieldIds.scale_max_40c,
+    data: [],
+    description: "Upper end of the measurement bar in the simulator (red band reaches this)",
+    functionEnabled: false,
+    inviteToDiscussionOnChange: false,
+    key: "scale_max",
+    label: "Scale max",
+    required: false,
+    type: "numeric"
   }
 ];

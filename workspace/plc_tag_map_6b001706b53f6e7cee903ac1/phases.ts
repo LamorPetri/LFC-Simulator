@@ -17,7 +17,9 @@ export const phases: HailerPhaseUpdatePayload[] = [
       PLC_Tag_Map_FieldIds.normal_min_6e5,
       PLC_Tag_Map_FieldIds.normal_max_6e8,
       PLC_Tag_Map_FieldIds.alarm_below_6ec,
-      PLC_Tag_Map_FieldIds.alarm_above_6ef
+      PLC_Tag_Map_FieldIds.alarm_above_6ef,
+      PLC_Tag_Map_FieldIds.scale_min_409,
+      PLC_Tag_Map_FieldIds.scale_max_40c
     ],
     followers: [],
     isEndpoint: false,
