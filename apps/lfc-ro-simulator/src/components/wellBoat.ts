@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import { RoundedBoxGeometry } from 'three/examples/jsm/geometries/RoundedBoxGeometry.js';
+import { buildDeckPlant } from './deckPlant';
 
 const { smoothstep, clamp } = THREE.MathUtils;
 const N = 64; // kaaria pituussuunnassa
@@ -143,19 +144,21 @@ export function buildWellBoat(): THREE.Group {
     add(box(3.4, 1, 2.8), dark, 6.5, 15.2, z);
   }
 
-  // työkansi perässä: kolme kalatankin luukkua, putkistot, jakotukki
-  for (const x of [-38, -22, -6]) add(box(13, 1.2, 12.4, 0.3), dark, x, 7.1, 0);
-  const pipe = new THREE.CylinderGeometry(0.4, 0.4, 50, 10);
+  // työkansi perässä: kolme kalatankin luukkua, putkistot, jakotukki (perimmän luukun takana RO-laitos: kontit + rumpusuodatin)
+  for (const x of [-35, -20, -5]) add(box(13, 1.2, 12.4, 0.3), dark, x, 7.1, 0);
+  const pipe = new THREE.CylinderGeometry(0.4, 0.4, 43, 10);
   pipe.rotateZ(Math.PI / 2);
-  for (const z of [-7.6, 7.6]) add(pipe, steel, -22, 8.4, z);
-  add(box(2, 1.6, 16), steel, -14, 8.2, 0);
-  add(box(2, 1.6, 16), steel, -30, 8.2, 0);
+  for (const z of [-7.6, 7.6]) add(pipe, steel, -18.5, 8.4, z);
+  add(box(2, 1.6, 16), steel, -12.5, 8.2, 0);
+  add(box(2, 1.6, 16), steel, -27.5, 8.2, 0);
   // kaksi kansinosturia, puomi 35° vaakatasosta ylös perään päin (sylinterin akseli kääntyy 55° pystystä)
   const boomGeo = new THREE.CylinderGeometry(0.45, 0.6, 16, 8);
-  for (const [x, z] of [[-13, 7], [-30, -7]] as const) {
+  for (const [x, z] of [[-15, 7], [-30, -7]] as const) {
     add(new THREE.CylinderGeometry(1.1, 1.3, 6, 12), yellow, x, 9.5, z);
     add(box(2.6, 2, 2.6, 0.4), yellow, x, 13.2, z);
     add(boomGeo, yellow, x - 6.55, 17.6, z).rotation.z = THREE.MathUtils.degToRad(55);
   }
+  // RO-laitos peräkannelle: 2 × Lamor 20 ft RO -kontti (±z), 10 ft CIP-kontti, HEX-rumpusuodatin + putket
+  ship.add(buildDeckPlant());
   return ship;
 }
