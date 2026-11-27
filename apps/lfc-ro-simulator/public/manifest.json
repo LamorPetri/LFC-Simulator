@@ -1,8 +1,8 @@
 {
   "name": "LFC RO Simulator",
   "description": "Simulation model base for Live Fish Carrier water production: identifies areas suitable for RO water production, alerts when producing near fish farms or on shallows, and gives predictive maintenance instructions (CIP, extended freshwater flush).",
-  "version": "0.26.0",
-  "versionDescription": "3D: RO-kaynnissa rejektin overboard-poisto — rungon kyljen poistosuuttimista (RO-laitoksen kohdalla, molemmin puolin) vesisuihku veteen, osumisesta vaahtorenkaita ja sekoitusalueen laikku pinnassa. Maara seuraa kapasiteettia; CIP-ajossa ei poistoa.",
+  "version": "0.26.1",
+  "versionDescription": "3D: rejektin overboard-poisto vain styrypuolelta kun yksi RO-linja kay (<= 63 m3/h), molemmilta puolilta kun molemmat. Aluksen syvays kasvaa makeavesitankin pinnan mukaan (0-100 % -> +0..1,0 m, pehmennetty). Ohjauspaneelissa syvayksen, tankin pinnan ja poistopuolen naytto.",
   "appId": "6b001bae6645d8f4a490ad03",
   "config": {
     "fields": {}

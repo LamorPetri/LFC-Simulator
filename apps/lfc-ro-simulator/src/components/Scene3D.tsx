@@ -340,6 +340,7 @@ export default function Scene3D() {
     let prevPos: [number, number] | null = null;
     let heading = 0;
     let sprayTimer = 0;
+    let sink = 0; // syväyksen lisäys (m), pehmennetty tankin pinnasta
     // pehmeä renderisijainti: storessa 1 Hz askelia (~5,7 m), täällä edellisen ja nykyisen store-pisteen
     // välillä TASAISELLA nopeudella (snapshot-interpolointi, ~1 s viive) -> ei kiihtyvyyshyppyjä askelten välillä.
     // Aiheempi eksponentiaalinen lähestyminen sai aluksen ryntäämään jokaisen askelen jälkeen ja hidastumaan.
@@ -386,7 +387,10 @@ export default function Scene3D() {
       }
       prevPos = [x, z];
       const t = now / 1000;
-      ship.position.set(x, 1 + Math.sin(t * 1.1) * 0.9, z);
+      // syväys: makeavesitankin täyttyessä alus painuu alemmas (0 % -> +0,0 m, 100 % -> +1,0 m), pehmeydellä ~1 s
+      const targetSink = (Math.max(0, Math.min(100, s.tankLevel)) / 100) * 1.0;
+      sink += (targetSink - sink) * (1 - Math.exp(-dt * 0.8));
+      ship.position.set(x, 1 - sink + Math.sin(t * 1.1) * 0.9, z);
       ship.rotation.y = heading;
       ship.rotation.z = Math.sin(t * 0.8) * 0.012;
       ship.rotation.x = Math.sin(t * 0.63) * 0.008;
@@ -411,10 +415,12 @@ export default function Scene3D() {
 
       // rejektin overboard-poisto: emitointi vain tuotannossa (määrä ~ kapasiteetti), painovoima, pintaan osuessa vaahtorengas
       const producingNow = s.producing;
-      brineAcc += (producingNow ? 70 + s.capacity * 0.45 : 0) * dt;
+      // yksi RO-linja (<= 63 m³/h) -> poisto vain styrypuolelta (linja 1 / HPP 1); molemmat linjat -> molemmilta puolilta
+      const twoTrains = s.capacity > 63;
+      brineAcc += (producingNow ? (twoTrains ? 70 + s.capacity * 0.45 : 45 + s.capacity * 0.3) : 0) * dt;
       while (brineAcc >= 1) {
         brineAcc -= 1;
-        const p = ports[brineNext % 2];
+        const p = ports[twoTrains ? brineNext % 2 : 0];
         p.nozzle.getWorldPosition(wp);
         p.o.getWorldPosition(wn);
         wDir.copy(wp).sub(wn).normalize();
@@ -449,16 +455,17 @@ export default function Scene3D() {
         f.m.scale.set(sc, sc, sc);
         (f.m.material as THREE.MeshBasicMaterial).opacity = 0.7 * (1 - k);
       }
-      for (const p of ports) {
-        p.plume.visible = producingNow;
-        if (!producingNow) continue;
+      ports.forEach((p, i) => {
+        const active = producingNow && (twoTrains || i === 0);
+        p.plume.visible = active;
+        if (!active) return;
         p.nozzle.getWorldPosition(wp);
         p.o.getWorldPosition(wn);
         wDir.copy(wp).sub(wn).normalize();
         const pulse = 1 + 0.08 * Math.sin(t * 2.1);
         p.plume.scale.set(pulse, pulse, pulse);
         p.plume.position.set(wp.x + wDir.x * 3.6, 0.14, wp.z + wDir.z * 3.6);
-      }
+      });
 
       if (water) water.material.uniforms.time.value = t * 0.5;
 

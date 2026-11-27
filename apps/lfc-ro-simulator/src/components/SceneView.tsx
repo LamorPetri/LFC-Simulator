@@ -93,6 +93,11 @@ export default function SceneView({ areas, tags, instructionByType, onAfterStop 
           <Text fontSize="xs" color="var(--mut)">Treatment water <Text as="span" className="lfc-pid-num" color="var(--txt)">{sim.volume.toFixed(0)}</Text> / {(sim.capacity * 7).toFixed(0)} m³ · ~7 h</Text>
           <Progress value={Math.min(100, (sim.volume / (sim.capacity * 7)) * 100)} size="sm" bg="var(--eq2)" sx={{ '.chakra-progress__indicator': { bg: 'var(--perm)' } }} borderRadius="sm" />
         </Box>
+        <Text fontSize="xs" color="var(--mut)" mt={2}>
+          Draught <Text as="span" className="lfc-pid-num" color="var(--txt)">+{(Math.max(0, Math.min(100, sim.tankLevel)) / 100).toFixed(2)} m</Text>
+          <Text as="span" mx={1}>·</Text>FW tank <Text as="span" className="lfc-pid-num" color="var(--txt)">{sim.tags.LT401.toFixed(0)} %</Text>
+          <Text as="span" mx={1}>·</Text>Brine <Text as="span" className="lfc-pid-num" color="var(--txt)">{sim.producing ? (sim.capacity > 63 ? 'both sides' : 'starboard') : 'off'}</Text>
+        </Text>
       </Box>
 
       {/* mittarikortit (HMI-tyyli): vihreä = normal, keltainen = varoitus, punainen = hälytys; rajat PLC Tag Map -datasetistä */}
