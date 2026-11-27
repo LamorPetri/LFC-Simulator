@@ -165,6 +165,27 @@ export default function Scene3D() {
     renderer.toneMappingExposure = 0.92;
     mount.appendChild(renderer.domElement);
 
+    // diagnostiikka (3D info -paneeli): WebGL/GPU, shaderit ja GLB-lataus — helpottaa etädiagnosointia
+    const diag = (patch: Record<string, string>) => useSim.getState().setSceneDiag(patch);
+    try {
+      const gl = renderer.getContext();
+      const dbgExt = gl.getExtension('WEBGL_debug_renderer_info');
+      diag({
+        'Three.js': `r${THREE.REVISION}`,
+        WebGL: String(gl.getParameter(gl.VERSION) ?? ''),
+        GPU: dbgExt ? String(gl.getParameter(dbgExt.UNMASKED_RENDERER_WEBGL)) : String(gl.getParameter(gl.RENDERER)),
+        'Max texture': String(gl.getParameter(gl.MAX_TEXTURE_SIZE)),
+        'Pixel ratio': String(renderer.getPixelRatio()),
+        'Module URL': import.meta.url.split('?')[0],
+        'Document base': document.baseURI,
+        'User agent': navigator.userAgent,
+        'Device pixel ratio': String(window.devicePixelRatio),
+        'GLB status': 'loading…',
+      });
+    } catch (e) {
+      diag({ WebGL: `unavailable: ${String(e)}` });
+    }
+
     const scene = new THREE.Scene();
 
     /* gradient-taivas (CanvasTexture-kupu) */
@@ -273,11 +294,11 @@ export default function Scene3D() {
     ocean.uniforms.uSunDir.value.copy(sun.position).normalize();
     const nearGeo = new THREE.PlaneGeometry(13000, 13000, 420, 420);
     nearGeo.rotateX(-Math.PI / 2);
-    const nearWater = new THREE.Mesh(nearGeo, ocean.material);
+    const nearWater = new THREE.Mesh(nearGeo, ocean.material as THREE.Material);
     scene.add(nearWater);
     const farGeo = new THREE.PlaneGeometry(1, 1, 8, 8);
     farGeo.rotateX(-Math.PI / 2);
-    const farWater = new THREE.Mesh(farGeo, ocean.material);
+    const farWater = new THREE.Mesh(farGeo, ocean.material as THREE.Material);
     farWater.scale.set(Math.abs(tx1 - tx0) * 1.6, 1, Math.abs(tz1 - tz0) * 1.6);
     farWater.position.set((tx0 + tx1) / 2, 0, (tz0 + tz1) / 2);
     scene.add(farWater);
@@ -343,15 +364,28 @@ export default function Scene3D() {
     procedural.rotation.y = -Math.PI / 2;
     ship.add(procedural);
     // GLB: lataa ja korvaa onnistuessa (metrejä, vesiraja-origo, forward +x).
-    // Uudelleenyritys: CDN voi palauttaa hetkellisesti virheen julkaisun jälkeen (muuten proseduraalinen jäisi koko istunnoksi).
-    const loadGlb = (attempt: number): Promise<Awaited<ReturnType<GLTFLoader['loadAsync']>>> =>
-      new GLTFLoader().loadAsync(workboatGlbUrl).catch((e) => {
+    // Useita URL-kandidaatteja (moduulisuhde, dokumentti, legacy-polku) + uudelleenyritys:
+    // CDN voi palauttaa hetkellisesti virheen julkaisun jälkeen (muuten proseduraalinen jäisi koko istunnoksi).
+    const glbFile = workboatGlbUrl.split('/').pop() ?? 'workboat20.glb';
+    const glbCandidates = [workboatGlbUrl];
+    try {
+      glbCandidates.push(new URL(`assets/${glbFile}`, document.baseURI).href, new URL('models/workboat20.glb', document.baseURI).href);
+    } catch {
+      /* document.baseURI ei hierarkkinen — riittää moduulisuhde */
+    }
+    type GlbResult = { gltf: Awaited<ReturnType<GLTFLoader['loadAsync']>>; url: string };
+    const loadGlb = (attempt: number): Promise<GlbResult> => {
+      const url = glbCandidates[Math.min(Math.floor(attempt / 2), glbCandidates.length - 1)];
+      return new GLTFLoader().loadAsync(url).then((gltf) => ({ gltf, url }), (e) => {
         if (disposed || attempt >= 7) throw e;
-        return new Promise<Awaited<ReturnType<GLTFLoader['loadAsync']>>>((resolve, reject) => {
+        return new Promise<GlbResult>((resolve, reject) => {
           window.setTimeout(() => loadGlb(attempt + 1).then(resolve, reject), Math.min(15000, 1000 * 2 ** attempt));
         });
       });
-    void loadGlb(0).then((gltf) => {
+    };
+    const t0 = performance.now();
+    void loadGlb(0).then(({ gltf, url }) => {
+      diag({ 'GLB status': `loaded ${url} (${Math.round(performance.now() - t0)} ms)` });
       if (disposed) return;
       const wrapper = new THREE.Group();
       gltf.scene.rotation.y = -Math.PI / 2; // forward +x -> +z
@@ -368,7 +402,11 @@ export default function Scene3D() {
       wrapper.position.y = 1;
       ship.add(wrapper);
       procedural.visible = false; // Lamor-periaate: GLB piilottaa proseduraalisen
-    }).catch((e) => console.warn('GLB ei ladannut, proseduraalinen jäi:', e));
+    }).catch((e: unknown) => {
+      const msg = e instanceof Error ? e.message : String(e);
+      diag({ 'GLB status': `FAILED: ${msg} (tried ${glbCandidates.join(', ')})` });
+      console.warn('GLB ei ladannut, proseduraalinen jäi:', e);
+    });
 
 
     /* ----- keulasuihke (Lamor Simin tapaan: pooled Points + painovoima) ----- */
@@ -398,6 +436,7 @@ export default function Scene3D() {
 
     /* ----- animaatio ----- */
     let raf = 0;
+    let shaderChecked = false;
     let lastT = performance.now();
     let prevPos: [number, number] | null = null;
     let heading = 0;
@@ -465,6 +504,24 @@ export default function Scene3D() {
       }
       controls.update();
       renderer.render(scene, camera);
+      // shader-tarkistus ensimmäisen ruudun jälkeen: jos meri-shader ei käänny (ajuri/GPU), korvataan yksinkertaisella materiaalilla
+      if (!shaderChecked) {
+        shaderChecked = true;
+        const programs = (renderer.info.programs ?? []) as Array<{ name?: string; diagnostics?: { programLog?: string } }>;
+        const failed = programs.filter((p) => p.diagnostics);
+        if (failed.length) {
+          const summary = failed.map((p) => `${p.name ?? '?'}: ${(p.diagnostics?.programLog ?? '').slice(0, 400)}`).join(' | ');
+          diag({ Shaders: `FAILED: ${summary}` });
+          if (failed.some((p) => p.name === 'ShaderMaterial')) {
+            const fallback = new THREE.MeshStandardMaterial({ color: 0x1e4f6b, roughness: 0.32, metalness: 0.05, transparent: true, opacity: 0.94 });
+            nearWater.material = fallback;
+            farWater.material = fallback;
+            diag({ Ocean: 'shader failed — flat fallback water' });
+          }
+        } else {
+          diag({ Shaders: `ok (${programs.length} programs)`, Ocean: 'Gerstner/fresnel shader' });
+        }
+      }
       raf = requestAnimationFrame(tick);
     };
     raf = requestAnimationFrame(tick);
@@ -475,6 +532,7 @@ export default function Scene3D() {
       renderer.setSize(w, h, false);
       camera.aspect = w / h;
       camera.updateProjectionMatrix();
+      diag({ Canvas: `${w}×${h} px (drawing buffer ${renderer.domElement.width}×${renderer.domElement.height})` });
     };
     resize();
     const ro = new ResizeObserver(resize);

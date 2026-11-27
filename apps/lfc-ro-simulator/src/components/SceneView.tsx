@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import {
   Alert, AlertIcon, Badge, Box, Button, HStack, Progress, Slider, SliderFilledTrack,
   SliderThumb, SliderTrack, Text
@@ -18,8 +18,21 @@ interface Props {
 
 export default function SceneView({ areas, tags, instructionByType, onAfterStop }: Props) {
   const sim = useSim();
+  const [showInfo, setShowInfo] = useState(false);
+  const [copyState, setCopyState] = useState('');
   const { handleStart, handleStop, nearestArea } = useProduction({ areas, instructionByType, onAfterStop });
   const sceneMount = useRef<HTMLDivElement | null>(null);
+
+  const copyDiag = async () => {
+    const text = JSON.stringify({ ...sim.sceneDiag, 'App version': __APP_VERSION__ }, null, 2);
+    try {
+      await navigator.clipboard.writeText(text);
+      setCopyState('copied ✓');
+    } catch {
+      setCopyState('clipboard blocked — select the rows manually');
+    }
+    window.setTimeout(() => setCopyState(''), 2500);
+  };
   
 
   const tagByTag: Record<string, TagRec> = {};
@@ -127,6 +140,33 @@ export default function SceneView({ areas, tags, instructionByType, onAfterStop 
           {ev.depth !== null ? `Depth ${ev.depth.toFixed(0)} m · ` : ''}
           {ev.farm ? `farm ${(ev.farm.distM / 1000).toFixed(2)} km` : ''}
         </Text>
+      </Box>
+
+      {/* 3D-diagnostiikka: WebGL/GPU, shaderit ja GLB-lataus — "3D info" -nappi */}
+      <Box position="absolute" bottom={3} right={3} zIndex={600} maxWidth="380px">
+        <Box className="lfc-panel" p={1} display="inline-block">
+          <Button size="xs" variant="outline" colorScheme="gray" onClick={() => setShowInfo((v) => !v)}>
+            ⚙ 3D info
+          </Button>
+        </Box>
+        {showInfo && (
+          <Box className="lfc-panel" p={3} mt={2} maxH="55vh" overflowY="auto" userSelect="text">
+            <HStack justify="space-between" mb={1}>
+              <Text fontWeight="bold" fontSize="sm">3D diagnostics</Text>
+              <Button size="xs" variant="outline" onClick={copyDiag}>{copyState || 'Copy'}</Button>
+            </HStack>
+            {Object.keys(sim.sceneDiag).length === 0 && <Text fontSize="xs" className="lfc-muted">Collecting…</Text>}
+            {Object.entries(sim.sceneDiag).map(([k, v]) => (
+              <Box key={k} mb={1.5}>
+                <Text fontSize="10px" fontWeight="bold" color="#a0aec8" letterSpacing="0.3">{k}</Text>
+                <Text fontSize="10px" color={/FAILED|unavailable/i.test(v) ? '#fc8181' : '#e2e8f0'} style={{ wordBreak: 'break-all', fontFamily: 'ui-monospace, Menlo, Consolas, monospace' }}>{v}</Text>
+              </Box>
+            ))}
+            <Text fontSize="10px" className="lfc-muted" mt={2}>
+              Flat water, blocky ship or missing cages? Copy this and send it — the GLB status and Shaders rows show the cause.
+            </Text>
+          </Box>
+        )}
       </Box>
     </Box>
   );
