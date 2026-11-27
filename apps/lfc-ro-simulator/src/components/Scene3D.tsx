@@ -412,7 +412,7 @@ export default function Scene3D() {
   return (
     <div ref={mountRef} className="scene-3d" title={`Route: ${ROUTE.map((r) => r.name).join(' → ')}`} data-producing={sim.producing ? 1 : 0}>
       {/* HUD-kompassi: ylhäällä = kameran katselusuunta; tick päivittää transformit, ei React-renderöintiä */}
-      <svg className="scene-compass lfc-panel" viewBox="0 0 100 122" role="img" aria-label="Compass">
+      <svg className="scene-compass lfc-pid-panel" viewBox="0 0 100 122" role="img" aria-label="Compass">
         <g ref={roseRef}>
           <circle cx="50" cy="50" r="40" fill="none" stroke="rgba(110,126,168,0.6)" strokeWidth="1" />
           {Array.from({ length: 12 }, (_, i) => (

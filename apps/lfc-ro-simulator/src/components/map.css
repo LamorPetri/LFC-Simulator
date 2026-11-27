@@ -35,11 +35,11 @@
   display: block;
 }
 
-/* HUD-kompassi mittauspaneelin vasemmalla puolella */
+/* HUD-kompassi mittauspaneelin vasemmalla puolella (paneeli 276 px + marginaali) */
 .scene-compass {
   position: absolute;
   top: 12px;
-  right: 264px;
+  right: 286px;
   width: 92px;
   z-index: 600;
   pointer-events: none;
@@ -91,13 +91,21 @@
 .lfc-dash { animation: lfc-dash-kf 13.2s linear infinite; }
 @keyframes lfc-dash-kf { to { stroke-dashoffset: -264; } }
 
-/* Process-välilehden HMI: väri vain tilalle (normaali neutraali, varoitus keltainen, hälytys punainen) */
-.lfc-pid {
+/* HMI-värijärjestelmä (Process-välilehän ilme): määritelty globaalisti :root-tasolla, jotta 3D-sivun
+   paneelit, kompassi ja mittarikortit käyttävät samoja muuttujia. Väri vain tilalle (normaali neutraali). */
+:root, .lfc-pid {
   --bg: #090e1b; --panel: #101930; --line: #22315a; --eq1: #273a66; --eq2: #141f3b; --eqs: #4563a3;
   --hi: rgba(140, 190, 255, 0.18); --txt: #e6ecfa; --mut: #8291b8; --pipe: #243257;
   --feed: #45bdfb; --perm: #35e0c4; --brine: #b59a63; --cip: #63c08a; --warn: #ffb020; --alarm: #ff5263;
 }
 .lfc-pid svg text { font-family: inherit; }
-.lfc-pid-panel { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; color: var(--txt); }
+.lfc-pid-panel { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; color: var(--txt); box-shadow: 0 8px 26px rgba(0, 0, 0, 0.45); }
 .lfc-pid-heading { font-size: 13px !important; letter-spacing: 0.14em; text-transform: uppercase; color: var(--mut); font-weight: 600 !important; }
 .lfc-pid-num { font-family: 'JetBrains Mono', ui-monospace, 'DejaVu Sans Mono', Menlo, Consolas, monospace; font-variant-numeric: tabular-nums; }
+/* 3D-sivun mittarikortti (MeasurementBar): tausta, reuna ja tilapalkki vasemmalla kuten Process-arvokorteissa */
+.lfc-mbar { position: relative; background: var(--bg); border: 1px solid var(--line); border-radius: 6px; padding: 6px 8px 5px 11px; }
+.lfc-mbar-bar { position: absolute; left: 0; top: 6px; bottom: 6px; width: 3px; border-radius: 1.5px; background: var(--eqs); }
+.lfc-mbar-note { color: var(--mut); font-size: 10px; margin-top: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.lfc-mbar-tick { position: absolute; font-size: 9px; color: var(--mut); white-space: nowrap; }
+.lfc-mbar-tag { font-weight: 700; color: var(--txt); letter-spacing: .06em; }
+.lfc-mbar-name { color: var(--mut); }
