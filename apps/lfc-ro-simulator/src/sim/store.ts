@@ -3,7 +3,7 @@
  * Päivittyy tick() -kutsusta (App ajaa sekuntikellon).
  */
 import { create } from 'zustand';
-import { evaluatePoint, foulingRatePerHour, recommend, routeStep, PointEval } from './engine';
+import { evaluatePoint, foulingRatePerHour, recommend, routeStep, pushOutOfKeepOut, PointEval, AvoidSide } from './engine';
 import { ROUTE_WAYPOINTS } from './engine';
 
 export interface BannerAlert {
@@ -17,6 +17,9 @@ export interface SimState {
   mode: 'auto' | 'manual';
   vessel: { lat: number; lon: number };
   routeTarget: number;
+  /** Häkin kiertosuunta (1 = häkki vasemmalla, -1 = oikealla, 0 = ei kiertoa) ja kierrettävä häkki. */
+  routeAvoidSide: AvoidSide;
+  routeAvoidFarm: string | null;
   vesselEval: PointEval;
   producing: boolean;
   cipRunning: boolean;
@@ -52,12 +55,16 @@ export interface SimState {
   tick: (dtS: number) => void;
 }
 
-const START = { lat: ROUTE_WAYPOINTS[0].lat, lon: ROUTE_WAYPOINTS[0].lon };
+/** Aloitussijainti: ensimmäisen reittipisteen (häkin) länsipuolella 300 m — aina häkkien kieltoalueiden ulkopuolella. */
+const START_M_PER_LON = 111320 * Math.cos((ROUTE_WAYPOINTS[0].lat * Math.PI) / 180);
+const START = pushOutOfKeepOut(ROUTE_WAYPOINTS[0].lat, ROUTE_WAYPOINTS[0].lon - 300 / START_M_PER_LON);
 
 export const useSim = create<SimState>((set, get) => ({
   mode: 'auto',
   vessel: { ...START },
   routeTarget: 1,
+  routeAvoidSide: 0,
+  routeAvoidFarm: null,
   vesselEval: evaluatePoint(START.lat, START.lon),
   producing: false,
   cipRunning: false,
@@ -79,9 +86,13 @@ export const useSim = create<SimState>((set, get) => ({
   foulingAlerted: false,
   lastTickAt: Date.now(),
 
-  setMode: (m) => set({ mode: m }),
+  setMode: (m) => set({ mode: m, routeAvoidSide: 0, routeAvoidFarm: null }),
   setCapacity: (c) => set({ capacity: Math.round(c) }),
-  placeVessel: (lat, lon) => set({ vessel: { lat, lon }, vesselEval: evaluatePoint(lat, lon) }),
+  // manuaalinen sijoitus: häkin sisälle klikattu piste työnnetään kieltoalueen ulkopuolelle (runko + 3 m varan päähän)
+  placeVessel: (lat, lon) => {
+    const p = pushOutOfKeepOut(lat, lon);
+    set({ vessel: p, vesselEval: evaluatePoint(p.lat, p.lon), routeAvoidSide: 0, routeAvoidFarm: null });
+  },
   setSessionId: (id) => set({ sessionId: id }),
   pushBanner: (a) => set((s) => ({ banners: [a, ...s.banners.filter((b) => b.id !== a.id)].slice(0, 4) })),
   dismissBanner: (id) => set((s) => ({ banners: s.banners.filter((b) => b.id !== id) })),
@@ -92,9 +103,11 @@ export const useSim = create<SimState>((set, get) => ({
     const patch: Partial<SimState> = { lastTickAt: Date.now() };
     // aluksen liike
     if (s.mode === 'auto') {
-      const r = routeStep(s.vessel.lat, s.vessel.lon, s.routeTarget, 11, dtS);
+      const r = routeStep(s.vessel.lat, s.vessel.lon, s.routeTarget, 11, dtS, s.routeAvoidSide, s.routeAvoidFarm);
       patch.vessel = { lat: r.lat, lon: r.lon };
       patch.routeTarget = r.targetIdx;
+      patch.routeAvoidSide = r.avoidSide;
+      patch.routeAvoidFarm = r.avoiding;
       patch.vesselEval = evaluatePoint(r.lat, r.lon);
     }
     const ev = patch.vesselEval ?? s.vesselEval;

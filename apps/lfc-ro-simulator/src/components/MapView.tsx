@@ -5,7 +5,7 @@ import './map.css';
 import { Box, Button, HStack, Text } from '@chakra-ui/react';
 import { useSim } from '../sim/store';
 import { AreaRec, ZoneRec, SessionRec } from '../api';
-import { FARMS, FARM_RADIUS_M } from '../sim/data';
+import { FARMS, FARM_RADIUS_M, FARM_KEEP_OUT_M, FARM_CLEARANCE_M } from '../sim/data';
 
 interface Props {
   areas: AreaRec[];
@@ -23,6 +23,7 @@ function suitabilityColor(a: AreaRec): string {
 
 export default function MapView({ areas, zones, sessions }: Props) {
   const mode = useSim((s) => s.mode);
+  const avoidFarm = useSim((s) => s.routeAvoidFarm);
   const mountRef = useRef<HTMLDivElement | null>(null);
   const mapRef = useRef<L.Map | null>(null);
   const vesselRef = useRef<L.Marker | null>(null);
@@ -78,7 +79,7 @@ export default function MapView({ areas, zones, sessions }: Props) {
         .bindTooltip(`Shallows &lt; 10 m — ${z.source ?? 'GEBCO'}`)
         .addTo(layer);
     }
-    // häkit — 🐟-merkki + 500 m oranssi ympyrä (merikorttityyli)
+    // häkit — 🐟-merkki + 500 m oranssi ympyrä (merikorttityyli) + punainen kieltoalue (alus ei koskaan mene sisälle)
     for (const f of FARMS) {
       L.circle([f.lat, f.lon], {
         radius: FARM_RADIUS_M,
@@ -88,6 +89,15 @@ export default function MapView({ areas, zones, sessions }: Props) {
         fillOpacity: 0.32,
       })
         .bindTooltip(`🐟 ${f.name} — 500 m zone (Fiskeridir)`)
+        .addTo(layer);
+      L.circle([f.lat, f.lon], {
+        radius: FARM_KEEP_OUT_M,
+        color: '#E53E3E',
+        weight: 2,
+        fill: false,
+        dashArray: '4 4',
+      })
+        .bindTooltip(`⛔ ${f.name} — keep-out ${FARM_KEEP_OUT_M} m: cages + hull + ${FARM_CLEARANCE_M} m clearance`)
         .addTo(layer);
       L.marker([f.lat, f.lon], {
         icon: L.divIcon({ className: 'farm-marker', html: '🐟', iconSize: [20, 20], iconAnchor: [10, 10] }),
@@ -201,8 +211,11 @@ export default function MapView({ areas, zones, sessions }: Props) {
           </Button>
         </HStack>
         <Text fontSize="10px" color="#8e9ab8" mt={1} textAlign="center">
-          {mode === 'manual' ? 'Click map to place vessel' : 'Following 3-farm route'}
+          {mode === 'manual' ? 'Click map to place vessel — snaps outside keep-out' : 'Following 3-farm route'}
         </Text>
+        {mode === 'auto' && avoidFarm && (
+          <Text fontSize="10px" color="#f6ad55" textAlign="center">⚠ avoiding {avoidFarm} · keep-out {FARM_KEEP_OUT_M} m</Text>
+        )}
       </Box>
       <Box
         position="absolute" bottom={8} left={8} zIndex={500}
@@ -214,6 +227,7 @@ export default function MapView({ areas, zones, sessions }: Props) {
         <Text>🟠 &lt; 40 — fish farm / shallows</Text>
         <Text>🔴 &lt; 40 — other (algae etc.)</Text>
         <Text mt={1}>🐟 farm zone 500 m · dashed = &lt; 10 m</Text>
+        <Text><span style={{ color: '#E53E3E' }}>⛔ red dashed</span> = keep-out {FARM_KEEP_OUT_M} m (cages + {FARM_CLEARANCE_M} m) — vessel never enters</Text>
         <Text>🚢 vessel · dots = production starts</Text>
       </Box>
     </Box>

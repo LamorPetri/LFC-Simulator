@@ -30,7 +30,21 @@ interface CipMarker {
   foulingBefore: number;
 }
 
-const chartTooltip = ({ active, payload }: any) => {
+interface CumPoint {
+  cumVol: number;
+  cumNaoh: number;
+  cumAnti: number;
+  name: string;
+  live: boolean;
+}
+
+/** Recharts-tooltipin props: active + payload[0].payload = datarivi. */
+interface TooltipProps<T> {
+  active?: boolean;
+  payload?: ReadonlyArray<{ payload?: T }>;
+}
+
+const chartTooltip = ({ active, payload }: TooltipProps<DataPoint>) => {
   if (!active || !payload?.length) return null;
   const d = payload[0]?.payload as DataPoint;
   return (
@@ -95,31 +109,35 @@ export default function ReportView({ sessions }: Props) {
       }
     }
     return markers;
-  }, [data, sessions]);
+  }, [data]);
 
 
-  /* Kumulatiivinen kemikaalikulutus (lineaarinen trendi) */
-  const cumulative = useMemo(() => {
+  /* Kumulatiivinen kemikaalikulutus (lineaarinen trendi) — juokseva summa kronologisesti */
+  const cumulative = useMemo((): CumPoint[] => {
     const sorted = [...sessions]
       .filter((x) => (x.volume ?? 0) > 0)
       .sort((a, b) => (a.start ?? 0) - (b.start ?? 0));
-    let cv = 0, cn = 0, ca = 0;
-    const pts = sorted.map((x) => {
-      cv += x.volume ?? 0;
-      cn += x.naoh ?? 0;
-      ca += x.antiscalant ?? 0;
-      return { cumVol: Math.round(cv), cumNaoh: Math.round(cn * 10) / 10, cumAnti: Math.round(ca * 100) / 100, name: x.name, live: false };
-    });
+    const acc = sorted.reduce(
+      (a, x) => {
+        const cv = a.cv + (x.volume ?? 0);
+        const cn = a.cn + (x.naoh ?? 0);
+        const ca = a.ca + (x.antiscalant ?? 0);
+        const pt: CumPoint = { cumVol: Math.round(cv), cumNaoh: Math.round(cn * 10) / 10, cumAnti: Math.round(ca * 100) / 100, name: x.name, live: false };
+        return { pts: [...a.pts, pt], cv, cn, ca };
+      },
+      { pts: [] as CumPoint[], cv: 0, cn: 0, ca: 0 },
+    );
     if (sim.producing && sim.volume > 0) {
-      pts.push({
-        cumVol: Math.round(cv + sim.volume),
-        cumNaoh: Math.round((cn + sim.naohLiters) * 10) / 10,
-        cumAnti: Math.round((ca + sim.antiscalantLiters) * 100) / 100,
+      const live: CumPoint = {
+        cumVol: Math.round(acc.cv + sim.volume),
+        cumNaoh: Math.round((acc.cn + sim.naohLiters) * 10) / 10,
+        cumAnti: Math.round((acc.ca + sim.antiscalantLiters) * 100) / 100,
         name: 'Current session',
         live: true,
-      });
+      };
+      return [...acc.pts, live];
     }
-    return pts;
+    return acc.pts;
   }, [sessions, sim.producing, sim.volume, sim.naohLiters, sim.antiscalantLiters]);
 
   const hasData = data.length > 0;
@@ -228,7 +246,7 @@ export default function ReportView({ sessions }: Props) {
                 <CartesianGrid stroke={gridStroke} />
                 <XAxis dataKey="cumVol" tick={axisStyle} label={{ value: 'Cumulative produced (m³)', position: 'insideBottom', offset: -2, ...axisStyle }} />
                 <YAxis tick={axisStyle} label={{ value: 'Cumulative litres', angle: -90, position: 'insideLeft', ...axisStyle }} />
-                <Tooltip content={({ active, payload }: any) => {
+                <Tooltip content={({ active, payload }: TooltipProps<CumPoint>) => {
                   if (!active || !payload?.length) return null;
                   const d = payload[0]?.payload;
                   return (

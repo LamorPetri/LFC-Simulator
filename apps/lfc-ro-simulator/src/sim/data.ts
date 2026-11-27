@@ -17,5 +17,14 @@ export const ROUTE: Farm[] = [{ name: "RATAREN", lat: 63.7813, lon: 8.521533 },{
 
 /** Häkin vaikutussäde (m). */
 export const FARM_RADIUS_M = 500;
-/** Mitalikkoraja (m). */
+/** Matalikkoraja (m). */
 export const SHALLOW_LIMIT_M = 10;
+
+/** Häkkiklusterin suurin säde keskustasta: 6 rengashäkkiä + rehulauta 3D-näkymässä (m). */
+export const FARM_STRUCTURE_RADIUS_M = 135;
+/** Aluksen runkon puolet pituudesta (86 m LFC) — keula huomioidaan etäisyydessä (m). */
+export const VESSEL_HALF_LENGTH_M = 45;
+/** Vähimmäisvara rakenteista laivan runkoon (m). Alus ei koskaan mene tätä lähemmäs häkeistä. */
+export const FARM_CLEARANCE_M = 3;
+/** Kieltoalueen säde häkin keskustasta (m): rakenteet + runko + vara. Reitti kiertää tämän alueen aina. */
+export const FARM_KEEP_OUT_M = FARM_STRUCTURE_RADIUS_M + VESSEL_HALF_LENGTH_M + FARM_CLEARANCE_M;

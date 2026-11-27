@@ -101,6 +101,11 @@ export default function App() {
         <Badge colorScheme={statusColor}>{statusText}</Badge>
         <Text fontSize="xs" className="lfc-muted" display={{ base: 'none', lg: 'block' }}>
           {sim.vessel.lat.toFixed(3)}°N {sim.vessel.lon.toFixed(3)}°E · {sim.mode === 'auto' ? 'auto route' : 'manual'}
+          {sim.mode === 'auto' && sim.routeAvoidFarm && (
+            <Text as="span" color="#f6ad55" ml={2}>
+              · ⚠ avoiding {sim.routeAvoidFarm} ({sim.routeAvoidSide === 1 ? 'farm to port' : 'farm to starboard'})
+            </Text>
+          )}
         </Text>
         <Box marginLeft="auto">
           <HStack spacing={2} fontSize="xs" className="lfc-muted">

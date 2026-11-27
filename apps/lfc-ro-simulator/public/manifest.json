@@ -1,8 +1,8 @@
 {
   "name": "LFC RO Simulator",
   "description": "Simulation model base for Live Fish Carrier water production: identifies areas suitable for RO water production, alerts when producing near fish farms or on shallows, and gives predictive maintenance instructions (CIP, extended freshwater flush).",
-  "version": "0.19.2",
-  "versionDescription": "Map-nakymaan lisatty Auto route / Manual -vaihtonapit (oikea ylakulma). Manual-tilassa karttaa klikkaamalla voi sijoittaa aluksen, Auto seuraa 3-hakin reittia.",
+  "version": "0.20.0",
+  "versionDescription": "Aluksen reitti ei koskaan aja kasvatushäkkien päälle: häkkien ympärillä 183 m kieltoalue (rakenteet 135 m + runko 45 m + 3 m vara). Autoreitti kiertää häkit kosketusviivaa ja kehää pitkin; manuaalinen sijoitus Häkin sisällä hyppää kieltoalueen ulkopuolelle; aloitussijainti häkin ulkopuolella; kartalla punainen katkoviiva = kieltoalue.",
   "appId": "6b001bae6645d8f4a490ad03",
   "config": {
     "fields": {}
