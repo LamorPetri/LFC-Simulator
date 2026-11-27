@@ -273,6 +273,67 @@ export default function Scene3D() {
       }
     };
 
+    /* ----- rejektin overboard-poisto RO:n käynnissä: rungon kyljen poistosuuttimista vesisuihku veteen,
+             osumisesta vaahtorengaita ja sekoitusalueen laikku pinnassa (deckPlantin rejektiputket → kansien ali → kylki) ----- */
+    const BRINE_N = 420;
+    const brinePos = new Float32Array(BRINE_N * 3);
+    const brineVel = new Float32Array(BRINE_N * 3);
+    const brineLife = new Float32Array(BRINE_N);
+    for (let i = 0; i < BRINE_N; i++) brinePos[i * 3 + 1] = -1e4;
+    const brineGeo = new THREE.BufferGeometry();
+    brineGeo.setAttribute('position', new THREE.BufferAttribute(brinePos, 3).setUsage(THREE.DynamicDrawUsage));
+    const brine = new THREE.Points(brineGeo, new THREE.PointsMaterial({ color: 0xdcf4f8, size: 2.1, transparent: true, opacity: 0.82, depthWrite: false }));
+    brine.frustumCulled = false;
+    scene.add(brine);
+    let brineNext = 0;
+    let brineAcc = 0;
+    let brineHits = 0;
+    // poistosuuttimet rungon kylkiin RO-laitoksen kohdalle (boat-kehys: keula +x, z poikittain; rungon puolileveys ~8,55 m)
+    const steelMat = new THREE.MeshStandardMaterial({ color: 0x77828a, roughness: 0.5, metalness: 0.45 });
+    const portMat = new THREE.MeshStandardMaterial({ color: 0x2b3238, roughness: 0.6, metalness: 0.3 });
+    const ports = [1, -1].map((sz) => {
+      const o = new THREE.Object3D();
+      o.position.set(-44, 1.3, sz * 8.55);
+      boat.add(o);
+      const stub = new THREE.Mesh(new THREE.CylinderGeometry(0.3, 0.3, 1.2, 12), steelMat);
+      stub.rotation.x = Math.PI / 2;
+      stub.position.set(0, 0, sz * 0.55);
+      o.add(stub);
+      const flange = new THREE.Mesh(new THREE.CylinderGeometry(0.45, 0.45, 0.18, 14), portMat);
+      flange.rotation.x = Math.PI / 2;
+      flange.position.set(0, 0, sz * 1.1);
+      o.add(flange);
+      const nozzle = new THREE.Object3D();
+      nozzle.position.set(0, 0, sz * 1.3);
+      o.add(nozzle);
+      // sekoitusalueen laikku pinnassa (näkyy vain tuotannossa)
+      const plume = new THREE.Mesh(new THREE.CircleGeometry(3.4, 28), new THREE.MeshBasicMaterial({ color: 0xa8e8ec, transparent: true, opacity: 0.16, side: THREE.DoubleSide, depthWrite: false }));
+      plume.rotation.x = -Math.PI / 2;
+      plume.visible = false;
+      scene.add(plume);
+      return { o, nozzle, plume };
+    });
+    // vaahtorenkaat: pool, kasvaa ja haalistuu ~1,1 s
+    const FOAM_N = 26;
+    const foamGeo = new THREE.RingGeometry(0.55, 1.0, 24);
+    const foam = Array.from({ length: FOAM_N }, () => {
+      const m = new THREE.Mesh(foamGeo, new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0, side: THREE.DoubleSide, depthWrite: false }));
+      m.rotation.x = -Math.PI / 2;
+      m.visible = false;
+      scene.add(m);
+      return { m, t: 0 };
+    });
+    let foamNext = 0;
+    const spawnFoam = (x: number, z: number) => {
+      const f = foam[foamNext++ % FOAM_N];
+      f.m.position.set(x, 0.3, z);
+      f.m.visible = true;
+      f.t = 0;
+    };
+    const wp = new THREE.Vector3();
+    const wn = new THREE.Vector3();
+    const wDir = new THREE.Vector3();
+
     /* ----- animaatio ----- */
     let raf = 0;
     let lastT = performance.now();
@@ -347,6 +408,57 @@ export default function Scene3D() {
         for (let a = 0; a < 3; a++) sprayPos[i * 3 + a] += sprayVel[i * 3 + a] * dt;
       }
       sprayGeo.attributes.position.needsUpdate = true;
+
+      // rejektin overboard-poisto: emitointi vain tuotannossa (määrä ~ kapasiteetti), painovoima, pintaan osuessa vaahtorengas
+      const producingNow = s.producing;
+      brineAcc += (producingNow ? 70 + s.capacity * 0.45 : 0) * dt;
+      while (brineAcc >= 1) {
+        brineAcc -= 1;
+        const p = ports[brineNext % 2];
+        p.nozzle.getWorldPosition(wp);
+        p.o.getWorldPosition(wn);
+        wDir.copy(wp).sub(wn).normalize();
+        const i = brineNext++ % BRINE_N;
+        const sp = 6.5 + Math.random() * 2.5;
+        brinePos[i * 3] = wp.x; brinePos[i * 3 + 1] = wp.y; brinePos[i * 3 + 2] = wp.z;
+        brineVel[i * 3] = wDir.x * sp + (Math.random() - 0.5) * 0.8;
+        brineVel[i * 3 + 1] = 1.6 + Math.random() * 1.6;
+        brineVel[i * 3 + 2] = wDir.z * sp + (Math.random() - 0.5) * 0.8;
+        brineLife[i] = 1.6;
+      }
+      for (let i = 0; i < BRINE_N; i++) {
+        if (brineLife[i] <= 0) continue;
+        brineLife[i] -= dt;
+        brineVel[i * 3 + 1] -= 9.81 * dt;
+        brinePos[i * 3] += brineVel[i * 3] * dt;
+        brinePos[i * 3 + 1] += brineVel[i * 3 + 1] * dt;
+        brinePos[i * 3 + 2] += brineVel[i * 3 + 2] * dt;
+        if (brineLife[i] <= 0 || brinePos[i * 3 + 1] < 0.35) {
+          if (brinePos[i * 3 + 1] < 0.35 && brineHits++ % 5 === 0) spawnFoam(brinePos[i * 3], brinePos[i * 3 + 2]);
+          brineLife[i] = 0;
+          brinePos[i * 3 + 1] = -1e4;
+        }
+      }
+      brineGeo.attributes.position.needsUpdate = true;
+      for (const f of foam) {
+        if (!f.m.visible) continue;
+        f.t += dt;
+        const k = f.t / 1.1;
+        if (k >= 1) { f.m.visible = false; continue; }
+        const sc = 1 + k * 3.4;
+        f.m.scale.set(sc, sc, sc);
+        (f.m.material as THREE.MeshBasicMaterial).opacity = 0.7 * (1 - k);
+      }
+      for (const p of ports) {
+        p.plume.visible = producingNow;
+        if (!producingNow) continue;
+        p.nozzle.getWorldPosition(wp);
+        p.o.getWorldPosition(wn);
+        wDir.copy(wp).sub(wn).normalize();
+        const pulse = 1 + 0.08 * Math.sin(t * 2.1);
+        p.plume.scale.set(pulse, pulse, pulse);
+        p.plume.position.set(wp.x + wDir.x * 3.6, 0.14, wp.z + wDir.z * 3.6);
+      }
 
       if (water) water.material.uniforms.time.value = t * 0.5;
 
