@@ -6,6 +6,10 @@ import { DEPTH, FARMS, ROUTE, FARM_RADIUS_M, SHALLOW_LIMIT_M, FARM_KEEP_OUT_M, F
 
 const R = 6371000;
 
+/** Paikallinen tasoprojektio: metriä per aste. Pituusaste lyhenee leveysasteen kosinilla. */
+export const M_PER_LAT = 111320;
+export const mPerLon = (lat: number): number => M_PER_LAT * Math.cos((lat * Math.PI) / 180);
+
 export function distM(aLat: number, aLon: number, bLat: number, bLon: number): number {
   const dLat = ((bLat - aLat) * Math.PI) / 180;
   const dLon = ((bLon - aLon) * Math.PI) / 180;
@@ -17,11 +21,12 @@ export function distM(aLat: number, aLon: number, bLat: number, bLon: number): n
 export function depthAt(lat: number, lon: number): number | null {
   let best: number | null = null;
   let bd = Infinity;
+  const mLon = mPerLon(lat);
   for (let i = 0; i < DEPTH.rows; i++) {
-    const dLat = Math.abs(DEPTH.lat0 + i * DEPTH.dlat - lat) * 111320;
+    const dLat = Math.abs(DEPTH.lat0 + i * DEPTH.dlat - lat) * M_PER_LAT;
     if (dLat > 3000) continue;
     for (let j = 0; j < DEPTH.cols; j++) {
-      const dLon = Math.abs(DEPTH.lon0 + j * DEPTH.dlon - lon) * 55000;
+      const dLon = Math.abs(DEPTH.lon0 + j * DEPTH.dlon - lon) * mLon;
       if (dLon > 3000) continue;
       const v = DEPTH.values[i * DEPTH.cols + j];
       if (v === 32767) continue;
@@ -124,9 +129,6 @@ const SUBSTEP_M = 20;
 const ARC_R = FARM_KEEP_OUT_M + KEEP_OUT_MARGIN_M;
 /** Esteen tunnistussäde (m): hieman kaaren säteen sisällä, jotta kehältä päästään lähtemään tangenttisesti. */
 const R_TEST = ARC_R - 0.5;
-
-const M_PER_LAT = 111320;
-const mPerLon = (lat: number) => 111320 * Math.cos((lat * Math.PI) / 180);
 
 /** Paikallinen taso (m, x = itä, y = pohjoinen) origon ympärillä. */
 function toLocal(lat: number, lon: number, oLat: number, oLon: number): Pt {

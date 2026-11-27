@@ -22,3 +22,6 @@ dist/
 # Cloned app repositories with their OWN .git (gitUrl apps) are separate repos.
 # Apps built in this project (e.g. apps/lfc-ro-simulator) are committed here.
 # apps/
+
+# Local bot/harness config (holds a webhook secret) — never commit
+.bot-config/

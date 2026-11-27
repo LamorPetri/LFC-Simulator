@@ -1,5 +1,6 @@
 import { useCallback, useMemo } from 'react';
 import { useSim, startProduction, stopProduction } from './sim/store';
+import { distM } from './sim/engine';
 import { AreaRec, createSession, finishSession, createAlert, createAction } from './api';
 
 interface Params {
@@ -17,7 +18,7 @@ export function useProduction({ areas, instructionByType, onAfterStop }: Params)
     let bd = Infinity;
     for (const a of areas) {
       if (a.lat === null || a.lon === null) continue;
-      const d = Math.hypot((a.lat - sim.vessel.lat) * 111320, (a.lon - sim.vessel.lon) * 55000);
+      const d = distM(a.lat, a.lon, sim.vessel.lat, sim.vessel.lon);
       const lim = (a.radiusKm ?? 4) * 1000;
       if (d < lim && d < bd) { bd = d; best = a; }
     }

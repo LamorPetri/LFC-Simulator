@@ -40,15 +40,12 @@ export interface SimState {
   sessionId: string | null;
   startedAt: number | null;
   chase: boolean;
-  /** 3D-näkymän diagnostiikka (WebGL, shaderit, GLB-lataus) — näytetään "3D info" -paneelissa. */
-  sceneDiag: Record<string, string>;
   banners: BannerAlert[];
   pendingRecommendation: string[] | null;
   foulingAlerted: boolean;
   lastTickAt: number;
   // toiminnot
   setMode: (m: 'auto' | 'manual') => void;
-  setSceneDiag: (patch: Record<string, string>) => void;
   setCapacity: (c: number) => void;
   placeVessel: (lat: number, lon: number) => void;
   setSessionId: (id: string | null) => void;
@@ -84,14 +81,12 @@ export const useSim = create<SimState>((set, get) => ({
   sessionId: null,
   startedAt: null,
   chase: true,
-  sceneDiag: {},
   banners: [],
   pendingRecommendation: null,
   foulingAlerted: false,
   lastTickAt: Date.now(),
 
   setMode: (m) => set({ mode: m, routeAvoidSide: 0, routeAvoidFarm: null }),
-  setSceneDiag: (patch) => set((s) => ({ sceneDiag: { ...s.sceneDiag, ...patch } })),
   setCapacity: (c) => set({ capacity: Math.round(c) }),
   // manuaalinen sijoitus: häkin sisälle klikattu piste työnnetään kieltoalueen ulkopuolelle (runko + 3 m varan päähän)
   placeVessel: (lat, lon) => {

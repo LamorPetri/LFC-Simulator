@@ -5,7 +5,11 @@
  */
 import { Box, Flex, Slider, SliderThumb, SliderTrack, Text } from '@chakra-ui/react';
 import { TagRec } from '../api';
-import { Level, levelColor, tagLabel, tagLevel } from '../sim/tagLimits';
+import { Level, tagLevel } from './tagLevel';
+import { tagLabel } from '../sim/tagLimits';
+
+// HMI-värit: kaistat aina värillisiä (ok = vihreä), arvoteksti neutraali kun ok
+const bandColor = (l: Level) => (l === 'ok' ? 'var(--perm)' : `var(--${l})`);
 
 interface Band { from: number; to: number; level: Level }
 
@@ -40,7 +44,7 @@ interface Props {
 
 export default function MeasurementBar({ tag, value, decimals = 0 }: Props) {
   const label = tagLabel(tag);
-  const level = tagLevel(value, tag.normalMin, tag.normalMax, tag.alarmBelow, tag.alarmAbove);
+  const level = tagLevel(value, tag);
   // asteikko datasetistä (Scale min/max); puuttuessa johdetaan rajoista
   const lo = tag.scaleMin ?? Math.min(0, tag.normalMin ?? 0, tag.alarmBelow ?? 0, value);
   const hi = tag.scaleMax ?? Math.max((tag.normalMax ?? 0) * 1.25, (tag.alarmAbove ?? 0) * 1.25, value * 1.1, lo + 1);
@@ -53,16 +57,16 @@ export default function MeasurementBar({ tag, value, decimals = 0 }: Props) {
 
   return (
     <Box>
-      <Text fontSize="xs" fontWeight="semibold" color="#e2e8f0" noOfLines={1} title={label}>{label}</Text>
+      <Text fontSize="xs" fontWeight="semibold" color="var(--txt)" noOfLines={1} title={label}>{label}</Text>
       <Flex justify="space-between" align="baseline" mb={0.5}>
         <Text fontSize="10px" className="lfc-muted">{tag.tag}</Text>
-        <Text fontSize="sm" fontWeight="700" color={levelColor(level)} style={{ fontVariantNumeric: 'tabular-nums' }}>
+        <Text fontSize="sm" fontWeight="700" color={level === 'ok' ? 'var(--txt)' : bandColor(level)} style={{ fontVariantNumeric: 'tabular-nums' }}>
           {value.toFixed(decimals)}
           <Text as="span" fontSize="10px" fontWeight="400" className="lfc-muted" ml={1}>{tag.unit ?? ''}</Text>
         </Text>
       </Flex>
       <Slider min={lo} max={hi} value={clamp(value)} isReadOnly focusThumbOnChange={false}>
-        <SliderTrack height="8px" borderRadius="sm" bg="#1a2333">
+        <SliderTrack height="8px" borderRadius="sm" bg="var(--eq2)">
           {bands.map((b, i) => (
             <Box
               key={i}
@@ -71,11 +75,11 @@ export default function MeasurementBar({ tag, value, decimals = 0 }: Props) {
               bottom={0}
               left={`${pct(b.from)}%`}
               width={`${Math.max(0, pct(b.to) - pct(b.from))}%`}
-              bg={levelColor(b.level)}
+              bg={bandColor(b.level)}
             />
           ))}
         </SliderTrack>
-        <SliderThumb width="4px" height="14px" borderRadius="1px" bg="#ffffff" border="1px solid #0b1220" boxShadow="0 0 4px rgba(0,0,0,0.7)" />
+        <SliderThumb width="4px" height="14px" borderRadius="1px" bg="var(--txt)" border="1px solid var(--bg)" boxShadow="0 0 4px rgba(0,0,0,0.7)" />
       </Slider>
       <Box position="relative" height="12px" mt={0.5}>
         {ticks.map((v, i) => (
