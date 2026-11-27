@@ -1,8 +1,8 @@
 {
   "name": "LFC RO Simulator",
   "description": "Simulation model base for Live Fish Carrier water production: identifies areas suitable for RO water production, alerts when producing near fish farms or on shallows, and gives predictive maintenance instructions (CIP, extended freshwater flush).",
-  "version": "0.21.3",
-  "versionDescription": "3D info -diagnostiikkapaneeli (WebGL/GPU, shader-käännös, GLB-lataus, canvas-koko, user agent) copy-napilla. GLB: kolme URL-kandidaattia + uudelleenyritys; jos meri-shader ei käänny ajurissa, tasainen varavesi tilalle ja syy näkyy diagnostiikassa.",
+  "version": "0.21.4",
+  "versionDescription": "3D: canvasin CSS-koko asetetaan sailytteen koon mukaiseksi (renderer.setSize updateStyle) — HiDPI-naytolla skene ei enaa zoomaudu 1.75x ja leikkautuisi. Diagnostiikka: 3D info -nappi.",
   "appId": "6b001bae6645d8f4a490ad03",
   "config": {
     "fields": {}

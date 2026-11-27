@@ -529,7 +529,9 @@ export default function Scene3D() {
     const resize = () => {
       const w = mount.clientWidth || 640;
       const h = mount.clientHeight || 480;
-      renderer.setSize(w, h, false);
+      // updateStyle=true: canvasin CSS-koko = säiliön koko (piirtoalue × pikselisuhde). Ilman tätä HiDPI-näytöllä
+      // canvas oleisi 1.75× säiliötä -> skene zoomautuisi ja leikkautuisi (näyttäisi "vanhalta/lähikuvalta").
+      renderer.setSize(w, h);
       camera.aspect = w / h;
       camera.updateProjectionMatrix();
       diag({ Canvas: `${w}×${h} px (drawing buffer ${renderer.domElement.width}×${renderer.domElement.height})` });
