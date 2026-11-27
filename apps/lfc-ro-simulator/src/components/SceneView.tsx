@@ -5,6 +5,7 @@ import {
 } from '@chakra-ui/react';
 import Scene3D from './Scene3D';
 import MeasurementBar from './MeasurementBar';
+import { Level } from './tagLevel';
 import { useSim } from '../sim/store';
 import { AreaRec, TagRec } from '../api';
 import { useProduction } from '../useProduction';
@@ -18,6 +19,7 @@ interface Props {
 
 export default function SceneView({ areas, tags, instructionByType, onAfterStop }: Props) {
   const sim = useSim();
+  const cap = sim.capacity;
   const { handleStart, handleStop, nearestArea } = useProduction({ areas, instructionByType, onAfterStop });
   const sceneMount = useRef<HTMLDivElement | null>(null);
  
@@ -106,12 +108,43 @@ export default function SceneView({ areas, tags, instructionByType, onAfterStop 
             <Box w="10px" h="6px" borderRadius="1px" bg="#ff5263" /><Text>alarm</Text>
           </HStack>
         </Box>
-        {['FT-101', 'PT-102', 'PDT-103', 'CT-301', 'AT-501'].map((tagId) => {
+        {['FT-101', 'FT-201', 'PT-102', 'PDT-103', 'CT-301', 'AT-501'].map((tagId) => {
           const t = tagByTag[tagId];
           if (!t) return null;
+          // tuotantopyyntöön suhteutetut palkit: syöttö aina ≥ 2 × pyyntö (saanto 50 %), tuotettu ±10 % pyynnöstä
+          const isFeed = tagId === 'FT-101';
+          const isProduced = tagId === 'FT-201';
+          const dynamic = isFeed
+            ? {
+                scale: [0, 2.6 * cap] as [number, number],
+                bands: [{ from: 0, to: 2 * cap, level: 'alarm' as Level }, { from: 2 * cap, to: 2.6 * cap, level: 'ok' as Level }],
+                ticks: [0, 2 * cap, 2.6 * cap],
+                level: (sim.producing && sim.tags.FT101 >= 2 * cap ? 'ok' : 'alarm') as Level,
+                note: `≥ 2 × request = ${2 * cap} m³/h (recovery 50 %) · now ${cap > 0 ? (sim.tags.FT101 / cap).toFixed(2) : '—'} ×`,
+                idle: !sim.producing,
+              }
+            : isProduced
+              ? {
+                  scale: [0, 1.5 * cap] as [number, number],
+                  bands: [
+                    { from: 0, to: 0.9 * cap, level: 'alarm' as Level },
+                    { from: 0.9 * cap, to: 1.1 * cap, level: 'ok' as Level },
+                    { from: 1.1 * cap, to: 1.5 * cap, level: 'alarm' as Level },
+                  ],
+                  ticks: [0, 0.9 * cap, 1.1 * cap, 1.5 * cap],
+                  level: (sim.producing && !sim.cipNeeded ? 'ok' : 'alarm') as Level,
+                  note: `request ${cap} m³/h · now ${cap > 0 ? Math.round((sim.tags.FT201 / cap) * 100) : 0} % (green = ±10 %)`,
+                  idle: !sim.producing,
+                }
+              : {};
           return (
             <Box key={tagId} mb={2.5} _last={{ mb: 0 }}>
-              <MeasurementBar tag={t} value={valueOf(tagId)} decimals={tagId === 'PDT-103' ? 2 : tagId === 'AT-501' ? 2 : 0} />
+              <MeasurementBar tag={t} value={valueOf(tagId)} decimals={tagId === 'PDT-103' ? 2 : tagId === 'AT-501' ? 2 : 0} {...dynamic} />
+              {isProduced && sim.producing && sim.cipNeeded && (
+                <Text fontSize="10px" fontWeight="bold" color="#ff5263" mt={0.5} className="lfc-pulse">
+                  ⚠ CIP REQUIRED — produced water outside ±10 % of request
+                </Text>
+              )}
             </Box>
           );
         })}

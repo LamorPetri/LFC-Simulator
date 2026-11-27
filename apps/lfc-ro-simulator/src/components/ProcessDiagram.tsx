@@ -202,6 +202,28 @@ export default function ProcessDiagram({ tagByTag }: { tagByTag: Record<string, 
         ))}
         <Label x={565} y={238}>CARTRIDGE FILTERS</Label>
 
+        {/* ---- fresh water back-flush C1–C4: sisään JÄTTÖPÄÄSTÄ (C2/C4, CIP-nousuputkesta), läpi takaperin (C2→C1, C4→C3), ulos TULOPÄÄSTÄ (C1/C3) viemäriin ---- */}
+        <Pipe d="M656 308V269H631" kind="cip" w={4} dotted on={cip} />
+        <Pipe d="M656 321H631" kind="cip" w={4} dotted on={cip} />
+        <Pipe d="M499 269H488V486" kind="cip" w={4} dotted on={cip} />
+        <Pipe d="M499 321H488" kind="cip" w={4} dotted on={cip} />
+        {/* venttiilit: auki vain huuhtelussa (C2- ja C4-jättölinjat + viemäri) */}
+        <path d="M650 283h12l-6 9z M650 301h12l-6 -9z" fill="var(--panel)" stroke={cip ? 'var(--cip)' : 'var(--eqs)'} />
+        <path d="M637 315v12l8 -6z M653 315v12l-8 -6z" fill="var(--panel)" stroke={cip ? 'var(--cip)' : 'var(--eqs)'} />
+        <path d="M482 383h12l-6 9z M482 401h12l-6 -9z" fill="var(--panel)" stroke={cip ? 'var(--cip)' : 'var(--eqs)'} />
+        {/* viemärisymboli */}
+        <path d="M480 488h16l-5 10h-6z" fill="none" stroke="var(--cip)" />
+        <path d="M488 498v6" stroke="var(--cip)" />
+        <Label x={648} y={420} size={8} anchor="end">FW BACK-FLUSH IN</Label>
+        <Label x={476} y={500} size={8} anchor="end">BACK-FLUSH OUT → DRAIN</Label>
+        {/* takaperinvirtaus suodattimien läpi (C2→C1, C4→C3), näkyy vain huuhtelussa */}
+        {cip && (
+          <g stroke="var(--cip)" strokeWidth={2} strokeDasharray="10 8" className="lfc-dash" opacity={0.95}>
+            <path d="M629 269H501" fill="none" />
+            <path d="M629 321H501" fill="none" />
+          </g>
+        )}
+
         {/* ---- linjat: HPP + iSave + RO-stack ---- */}
         {[
           { hpp: 165, isave: 225, stack: 130, mixer: 190, naoh: 104, n: 1, run: on, dim: 1 },

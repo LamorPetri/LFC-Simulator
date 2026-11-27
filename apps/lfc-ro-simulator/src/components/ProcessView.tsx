@@ -91,9 +91,14 @@ export default function ProcessView({ tags, areas, instructionByType, onAfterSto
                 CIP {sim.cipRunning ? 'STOP' : 'START'}
               </Button>
             </HStack>
-            <Tooltip label={producing ? 'CIP lukittu tuotannon ajaksi — pysäytä tuotanto ensin' : 'CIP + fresh water flush -kierto'}>
+            <Tooltip label={producing ? 'CIP lukittu tuotannon ajaksi — pysäytä tuotanto ensin' : 'CIP-kierto RO-stackkeille + fresh water back-flush C1–C4 (sisään jättöpäästä, ulos tulopäästä viemäriin)'}>
               <Text fontSize="xs" className="lfc-muted" mt={1} cursor="help">CIP interlock: {producing ? 'production running' : sim.cipRunning ? 'circulating' : 'standby'}</Text>
             </Tooltip>
+            <Text fontSize="xs" mt={1} className={sim.cipNeeded ? 'lfc-pulse' : 'lfc-muted'} color={sim.cipNeeded ? 'var(--alarm)' : undefined} fontWeight={sim.cipNeeded ? 700 : 400}>
+              {producing
+                ? `Produced water ${Math.round((sim.tags.FT201 / sim.capacity) * 100)} % of request · feed ${(sim.tags.FT101 / sim.capacity).toFixed(2)} × request${sim.cipNeeded ? ' — ⚠ CIP REQUIRED' : ''}`
+                : 'Feed ≥ 2 × request (recovery 50 %) · produced water ±10 % of request'}
+            </Text>
             <Button mt={2} width="100%" size="lg" colorScheme={producing ? 'red' : 'green'} onClick={producing ? handleStop : handleStart}>
               {producing ? 'STOP PRODUCTION' : 'START PRODUCTION'}
             </Button>

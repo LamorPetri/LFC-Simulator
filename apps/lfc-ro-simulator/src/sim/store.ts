@@ -43,6 +43,9 @@ export interface SimState {
   banners: BannerAlert[];
   pendingRecommendation: string[] | null;
   foulingAlerted: boolean;
+  /** Tuotettu vesi ±10 % kaistan ulkopuolella pyynnöstä tuotannon aikana -> CIP-pesutarve. */
+  cipNeeded: boolean;
+  cipNeededAlerted: boolean;
   lastTickAt: number;
   // toiminnot
   setMode: (m: 'auto' | 'manual') => void;
@@ -84,6 +87,8 @@ export const useSim = create<SimState>((set, get) => ({
   banners: [],
   pendingRecommendation: null,
   foulingAlerted: false,
+  cipNeeded: false,
+  cipNeededAlerted: false,
   lastTickAt: Date.now(),
 
   setMode: (m) => set({ mode: m, routeAvoidSide: 0, routeAvoidFarm: null }),
@@ -124,7 +129,11 @@ export const useSim = create<SimState>((set, get) => ({
     let ph = s.tags.AT501;
     let naohRate = 0;
     let antiRate = 0;
+    let producedFlow = 0;
     if (s.producing) {
+      // tuotettu virtaama nousee pyynnöstä (cap) likaantumisen myötä: puhdas 100 %, 50 % likaantumisella 90 %
+      // (±10 % kaistan reuna), 80 %:lla 84 % -> punainen ja CIP-pesutarve
+      producedFlow = cap * (1 - (fouling / 100) * 0.2);
       // AquaBoll dp nousee veden laadun mukaan (0.03-0.12 bar/h)
       const dpRate = ev.status === 'farm' ? 0.12 : ev.status === 'shallow' ? 0.08 : ev.status === 'caution' ? 0.05 : 0.03;
       abollDp = Math.min(1.2, abollDp + ((dpRate * dtS) / 3600) * (cap / 120));
@@ -132,13 +141,20 @@ export const useSim = create<SimState>((set, get) => ({
       const dpMul = abollDp > 0.6 ? 1.5 : abollDp > 0.4 ? 1.2 : 1.0;
       const rate = foulingRatePerHour(ev, cap) * dpMul;
       fouling = Math.min(100, fouling + (rate * dtS) / 3600);
-      volume = volume + (cap * dtS) / 3600;
+      volume = volume + (producedFlow * dtS) / 3600;
       // fouling >= 80%: CIP-suositus (vain kerran per nousu)
       if (fouling >= 80 && !get().foulingAlerted) {
         set({ foulingAlerted: true });
         get().pushBanner({ id: 'fouling-80', type: 'Fouling factor', severity: 'Critical', message: 'Fouling factor at 80%. Stop production and run CIP flush.' });
       }
-      tankLevel = Math.min(100, tankLevel + (cap / 500) * dtS / 60);
+      // tuotettu vesi pyynnöstä: ±10 % kaistan ulkopuolella -> CIP-pesutarpeen indikaatio (banneri kerran per poikkeama)
+      patch.cipNeeded = Math.abs(producedFlow / cap - 1) > 0.1;
+      if (patch.cipNeeded && !get().cipNeededAlerted) {
+        set({ cipNeededAlerted: true });
+        get().pushBanner({ id: 'cip-needed', type: 'CIP required', severity: 'Warning', message: `Produced water ${Math.round((producedFlow / cap) * 100)} % of request — outside ±10 %. Plan a CIP flush.` });
+      }
+      if (!patch.cipNeeded && get().cipNeededAlerted) set({ cipNeededAlerted: false });
+      tankLevel = Math.min(100, tankLevel + (producedFlow / 500) * dtS / 60);
       // NaOH-annostus: raakapH laskee likaantumisen myötä, säädin tähtää 7.5:een
       const rawPh = 6.6 - (fouling / 100) * 0.8;
       naohRate = Math.max(0, Math.min(12, (7.5 - rawPh) * 5));
@@ -147,11 +163,12 @@ export const useSim = create<SimState>((set, get) => ({
       phCount += dtS;
       naohLiters += (naohRate * dtS) / 3600;
       // Antiskalantti: 2 ml/m3 tuotettua vetta
-      antiRate = cap * 0.002 * 10;
+      antiRate = producedFlow * 0.002 * 10;
       antiscalantLiters += (antiRate * dtS) / 3600;
     } else {
       // fouling pysyy — vain CIP pesee sen pois
       tankLevel = Math.max(0, tankLevel - (0.8 * dtS) / 3600);
+      patch.cipNeeded = false;
     }
     patch.fouling = fouling;
     patch.abollDp = abollDp;
@@ -162,10 +179,11 @@ export const useSim = create<SimState>((set, get) => ({
     patch.phSum = phSum;
     patch.phCount = phCount;
     patch.tags = {
-      FT101: s.producing ? cap + noise(3) : 0,
+      // syöttövirtaama: RO-saanto 50 % -> syöttö aina vähintään 2 x tuotantopyyntö (3 % marginaali + kohina)
+      FT101: s.producing ? 2 * cap * 1.03 + noise(4) : 0,
       PT102: s.producing ? 45.5 + fouling * 0.09 + noise(0.4) : 0,
       PDT103: 0.65 + (fouling / 100) * 1.25 + noise(0.03),
-      FT201: s.producing ? cap * 0.88 - (fouling / 100) * 14 + noise(2) : 0,
+      FT201: s.producing ? producedFlow + noise(2) : 0,
       // tuotetun veden sähkönjohtavuus (µS/cm): SWRO-permeaatti ~230 µS/cm puhtaana, nousee likaantumisen
       // myötä (suolan läpäisy) -> 500 (keltainen) ~80 % likaantumisessa, 700 (punainen) ~100 %
       CT301: 230 + (fouling / 100) * 480 + (ev.status === 'farm' ? 25 : ev.status === 'shallow' ? 15 : 0) + noise(6),
@@ -183,7 +201,7 @@ export const useSim = create<SimState>((set, get) => ({
 export function startProduction(): { evalResult: PointEval; recommendation: string[] } {
   const s = useSim.getState();
   const ev = evaluatePoint(s.vessel.lat, s.vessel.lon);
-  useSim.setState({ producing: true, volume: 0, vesselEval: ev, pendingRecommendation: null, startedAt: Date.now() });
+  useSim.setState({ producing: true, volume: 0, vesselEval: ev, pendingRecommendation: null, startedAt: Date.now(), cipNeeded: false, cipNeededAlerted: false });
   return { evalResult: ev, recommendation: recommend(ev, 0) };
 }
 

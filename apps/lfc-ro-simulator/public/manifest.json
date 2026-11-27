@@ -1,8 +1,8 @@
 {
   "name": "LFC RO Simulator",
   "description": "Simulation model base for Live Fish Carrier water production: identifies areas suitable for RO water production, alerts when producing near fish farms or on shallows, and gives predictive maintenance instructions (CIP, extended freshwater flush).",
-  "version": "0.22.0",
-  "versionDescription": "3D-nakyma ja Prosessi-valilehti uusittu (vesi, taivas, vuoret, huoltoalus, ruokinta-aluksen malli, kompassi, HMI-tyyli). Reitti kiertaa kalankasvatushaakit. Mittauspalkit nayttavat vihrean, keltaisen ja punaisen alueen. Sovellus paivittaa itsensa ja nayttaa versionumeron.",
+  "version": "0.23.3",
+  "versionDescription": "Uusi 3D-nakyma ja Prosessi-kaavio (0.22.0) + fresh water back-flush C1-C4 (sisaan jattopasta, ulos tulopasta viemariin). RO-saanto 50 %: syottovirtaama aina >= 2 x tuotantopyynto; tuotettu virtaama seuraa pyyntoa likaantumisen myota. 3D-valilehdella FT-101/FT-201-palkit suhteessa pyyntoon: tuotettu vihrea ±10 % pyynnosta, ulkona punainen + CIP-pesutarpeen indikaatio.",
   "appId": "6b001bae6645d8f4a490ad03",
   "config": {
     "fields": {}

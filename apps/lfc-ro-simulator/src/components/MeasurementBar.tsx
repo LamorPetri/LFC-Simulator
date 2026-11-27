@@ -2,6 +2,8 @@
  * Mittauspalkki: slider-tyylinen rata, jossa vihreä = normal-alue, keltainen = varoitus ja
  * punainen = hälytysalue; nappi osoittaa nykyisen arvon. Nimet, rajat ja asteikko tulevat
  * PLC Tag Map -datasetistä (data, ei koodia) — käyttäjä voi muuttaa niitä Hailerissa.
+ * Dynaamiseen käyttöön (esim. tuotantopyyntöön suhteutettu virtaama) kaistat, asteikko ja
+ * taso voidaan antaa kutsujasta.
  */
 import { Box, Flex, Slider, SliderThumb, SliderTrack, Text } from '@chakra-ui/react';
 import { TagRec } from '../api';
@@ -40,27 +42,40 @@ interface Props {
   tag: TagRec;
   value: number;
   decimals?: number;
+  /** Asteikko [min, max]; oletus datasetin Scale min/max (tai rajoista johdettu). */
+  scale?: [number, number];
+  /** Kaistat; oletus datasetin rajoista. */
+  bands?: Band[];
+  /** Asteikon numerot palkin alla; oletus kaistojen rajat. */
+  ticks?: number[];
+  /** Tason ohitus (esim. kohinaton suhde pyyntöön). */
+  level?: Level;
+  /** Lisäteksti arvon alle (esim. "96 % of request"). */
+  note?: string;
+  /** Idle-tila (ei tuotantoa): ei hälytysvärejä, himmeä nappi. */
+  idle?: boolean;
 }
 
-export default function MeasurementBar({ tag, value, decimals = 0 }: Props) {
+export default function MeasurementBar({ tag, value, decimals = 0, scale, bands: bandsProp, ticks: ticksProp, level: levelProp, note, idle = false }: Props) {
   const label = tagLabel(tag);
-  const level = tagLevel(value, tag);
+  const level = levelProp ?? tagLevel(value, tag);
   // asteikko datasetistä (Scale min/max); puuttuessa johdetaan rajoista
-  const lo = tag.scaleMin ?? Math.min(0, tag.normalMin ?? 0, tag.alarmBelow ?? 0, value);
-  const hi = tag.scaleMax ?? Math.max((tag.normalMax ?? 0) * 1.25, (tag.alarmAbove ?? 0) * 1.25, value * 1.1, lo + 1);
+  const lo = scale?.[0] ?? tag.scaleMin ?? Math.min(0, tag.normalMin ?? 0, tag.alarmBelow ?? 0, value);
+  const hi = scale?.[1] ?? tag.scaleMax ?? Math.max((tag.normalMax ?? 0) * 1.25, (tag.alarmAbove ?? 0) * 1.25, value * 1.1, lo + 1);
   const span = hi - lo || 1;
   const clamp = (v: number) => Math.max(lo, Math.min(hi, v));
   const pct = (v: number) => ((clamp(v) - lo) / span) * 100;
-  const bands = buildBands(tag, lo, hi);
-  const ticks = [...new Set([lo, tag.alarmBelow, tag.normalMin, tag.normalMax, tag.alarmAbove, hi].filter((v): v is number => v !== null).map(clamp))].sort((a, b) => a - b);
+  const bands = bandsProp ?? buildBands(tag, lo, hi);
+  const ticks = ticksProp ?? [...new Set([lo, tag.alarmBelow, tag.normalMin, tag.normalMax, tag.alarmAbove, hi].filter((v): v is number => v !== null).map(clamp))].sort((a, b) => a - b);
   const tickLabel = (v: number, i: number) => (i === 0 ? fmtNum(lo) : i === ticks.length - 1 ? fmtNum(hi) : fmtNum(v));
+  const valueColor = idle ? '#8e9ab8' : level === 'ok' ? '#e6ecfa' : bandColor(level);
 
   return (
     <Box>
       <Text fontSize="xs" fontWeight="semibold" color="#e6ecfa" noOfLines={1} title={label}>{label}</Text>
       <Flex justify="space-between" align="baseline" mb={0.5}>
         <Text fontSize="10px" className="lfc-muted">{tag.tag}</Text>
-        <Text fontSize="sm" fontWeight="700" color={level === 'ok' ? '#e6ecfa' : bandColor(level)} style={{ fontVariantNumeric: 'tabular-nums' }}>
+        <Text fontSize="sm" fontWeight="700" color={valueColor} style={{ fontVariantNumeric: 'tabular-nums' }}>
           {value.toFixed(decimals)}
           <Text as="span" fontSize="10px" fontWeight="400" className="lfc-muted" ml={1}>{tag.unit ?? ''}</Text>
         </Text>
@@ -76,10 +91,11 @@ export default function MeasurementBar({ tag, value, decimals = 0 }: Props) {
               left={`${pct(b.from)}%`}
               width={`${Math.max(0, pct(b.to) - pct(b.from))}%`}
               bg={bandColor(b.level)}
+              opacity={idle ? 0.35 : 1}
             />
           ))}
         </SliderTrack>
-        <SliderThumb width="4px" height="14px" borderRadius="1px" bg="#e6ecfa" border="1px solid #090e1b" boxShadow="0 0 4px rgba(0,0,0,0.7)" />
+        <SliderThumb width="4px" height="14px" borderRadius="1px" bg={idle ? '#8e9ab8' : '#e6ecfa'} border="1px solid #090e1b" boxShadow="0 0 4px rgba(0,0,0,0.7)" />
       </Slider>
       <Box position="relative" height="12px" mt={0.5}>
         {ticks.map((v, i) => (
@@ -97,6 +113,9 @@ export default function MeasurementBar({ tag, value, decimals = 0 }: Props) {
           </Text>
         ))}
       </Box>
+      {note && (
+        <Text fontSize="10px" className="lfc-muted" mt={0.5} noOfLines={1} title={note}>{note}</Text>
+      )}
     </Box>
   );
 }
